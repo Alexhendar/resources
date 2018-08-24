@@ -6,7 +6,7 @@ typora-root-url: ./
 
 ## 1.1  什么是nginx
 
-nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为俄罗斯最大的门户网站── Rambler Media(www.rambler.ru)编写的免费开源Web服务器。自2004年公开发布以来，nginx一直专注于高性能，高并发性和低内存使用。Web服务器功能之上的其他功能，如负载平衡，缓存，访问和带宽控制，以及与各种应用程序高效集成的能力，有助于使nginx成为现代网站架构的良好选择。 
+nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为俄罗斯最大的门户网站── Rambler Media(www.rambler.ru) 编写的免费开源Web服务器。自2004年公开发布以来，nginx一直专注于高性能，高并发性和低内存使用。Web服务器功能之上的其他功能，如负载平衡，缓存，访问和带宽控制，以及与各种应用程序高效集成的能力，有助于使nginx成为现代网站架构的良好选择。 
 
 ## 1.2 nginx 特点
 
@@ -61,7 +61,7 @@ nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为�
 ![market_share](/imgs/market_share.jpg)
 
 															~图片来源：https://news.netcraft.com/~
-
+	
 	虽然全球还有 50% Web 服务器是在用 Apache，但已有 1/3 的在使用 Nginx，并且两者之间的差距正在迅速缩小
 
 
