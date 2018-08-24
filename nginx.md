@@ -1,6 +1,5 @@
 ---
-
-typora-root-url: imgs
+typora-root-url: ./
 ---
 
 # 1  nginx介绍
@@ -17,9 +16,9 @@ nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为�
 
 ##### 	2、高性能
 
-![rpsforhttprequest](/rpsforhttprequest.jpg)
+![rpsforhttprequest](/imgs/rpsforhttprequest.jpg)
 
-![NGINX-HTTP-RPS](/NGINX-HTTP-RPS.png)
+![NGINX-HTTP-RPS](/imgs/NGINX-HTTP-RPS.png)
 
 
 
@@ -59,7 +58,7 @@ nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为�
 
 ## 1.3  市场趋势
 
-![mktshare](/market share.jpg)
+![market share](/imgs/market share.jpg)
 
 													~图片来源：https://news.netcraft.com/~
 	
@@ -67,7 +66,7 @@ nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为�
 
 
 
-![mktsharetop10000](/mktsharetop10000.png)
+![mktsharetop10000](/imgs/mktsharetop10000.png)
 
 													图片来源：http://top.jobbole.com/36597/
 	
@@ -109,7 +108,7 @@ sudo systemctl start nginx
 
 	启动nginx服务，没有异常信息说明启动成功。可以访问80端口加以验证。
 
-![nginxinstallverify](/nginxinstallverify.png)
+![nginxinstallverify](/imgs/nginxinstallverify.png)
 
 	出现上述页面，表示nginx安装成功，可以继续使用了。
 
@@ -422,7 +421,7 @@ location [=|~|~*|^~|@] pattern { ... }
 ```
 
 	[=|~|~*|^~|@] 被称作 location modifier ，这会定义 Nginx 如何去匹配其后的 pattern ，以及该 pattern 的最基本的属性（简单字符串或正则表达式）。
-
+	
 	location正则写法
 
 ```
@@ -520,7 +519,7 @@ location ~* /js/.*/\.js
 
 ## 3.1进程模型
 
-![nginx进程模型](/nginx进程模型.png)
+![nginx进程模型](/imgs/nginx进程模型.png)
 
 							Nginx整体框架结构图
 	
@@ -560,7 +559,7 @@ master进程负责下列工作:
 
 可以通过ps 命令查看nginx进程的父子结构
 
-![processtreestruct](/processtreestruct.png)
+![processtreestruct](/imgs/processtreestruct.png)
 
 ### 3.1.2 Cache加载进程
 
@@ -702,7 +701,7 @@ nginx内置的功能模块涵盖了我们平常使用的大部分功能，所有
 	
 	IO多路复用模型是建立在内核提供的多路分离函数select基础之上的，使用select函数可以避免同步非阻塞IO模型中轮询等待的问题。
 
-![iomultiple](/iomultiple.png)
+![iomultiple](/imgs/iomultiple.png)
 
 	如图所示，用户首先将需要进行IO操作的socket添加到select中，然后阻塞等待select系统调用返回。当数据到达时，socket被激活，select函数返回。用户线程正式发起read请求，读取数据并继续执行。
 	
@@ -1273,7 +1272,7 @@ Location: http://master.alex.com/a/img
 
 例如之前使用过这类软件例如CCproxy，[http://www.ccproxy.com](http://www.ccproxy.com/)/ 需要在浏览器中配置代理的地址。
 
-![proxyconfiguration](/proxyconfiguration.png)
+![proxyconfiguration](/imgs/proxyconfiguration.png)
 
 	总结来说：正向代理 是一个位于客户端和原始服务器(origin server)之间的服务器，为了从原始服务器取得内容，客户端向代理发送一个请求并指定目标(原始服务器)，然后代理向原始服务器转交请求并将获得的内容返回给客户端。客户端必须要进行一些特别的设置才能使用正向代理。
 
@@ -1299,11 +1298,11 @@ Location: http://master.alex.com/a/img
 
 大型网站，通常将反向代理作为公网访问地址，Web服务器是内网。
 
-![reverseproxy](/reverseproxy.png)
+![reverseproxy](/imgs/reverseproxy.png)
 
 	2、负载均衡，通过反向代理服务器来优化网站的负载
 
-![reverseandloadbalance](/reverseandloadbalance.png)
+![reverseandloadbalance](/imgs/reverseandloadbalance.png)
 
 ### 4.2.3 Nginx反向代理
 
@@ -1342,7 +1341,7 @@ public class IndexController {
 
 	此时，我们再次访问master.alex.com，
 
-![reverseProxy_sample1](/reverseProxy_sample1.jpg)
+![reverseProxy_sample1](/imgs/reverseProxy_sample1.jpg)
 
 ## 4.3  upstream池
 
@@ -1614,11 +1613,11 @@ Context: upstream
 
 realserver 都正常的状态：
 
-![realserverallup](/realserverallup.jpeg)
+![realserverallup](/imgs/realserverallup.jpeg)
 
 一台 realserver 故障的状态：
 
-![realserverdown](/realserverdown.jpeg)
+![realserverdown](/imgs/realserverdown.jpeg)
 
 
 
@@ -1787,8 +1786,8 @@ Reading: 0 Writing: 7 Waiting: 42
 #### 4.6.1.1  计数器
 
 	计数器是最简单粗暴的算法。比如某个服务最多只能每秒钟处理100个请求。我们可以设置一个1秒钟的滑动窗口，窗口中有10个格子，每个格子100毫秒，每100毫秒移动一次，每次移动都需要记录当前服务请求的次数。内存中需要保存10次的次数。可以用数据结构LinkedList来实现。格子每次移动的时候判断一次，当前访问次数和LinkedList中最后一个相差是否超过100，如果超过就需要限流了。
-	
-	![nginx_limit_calculator](/nginx_limit_calculator.png)
+
+![nginx_limit_calculator](/imgs/nginx_limit_calculator.png)
 
 很明显，当滑动窗口的格子划分的越多，那么滑动窗口的滚动就越平滑，限流的统计就会越精确。
 
@@ -1831,7 +1830,7 @@ private void doCheck()
 
 	漏桶算法即leaky bucket是一种非常常用的限流算法，可以用来实现流量整形（Traffic Shaping）和流量控制（Traffic Policing）。
 
-![nginx_limit_leaky_bucket](/nginx_limit_leaky_bucket.png)
+![nginx_limit_leaky_bucket](/imgs/nginx_limit_leaky_bucket.png)
 
 漏桶算法的主要概念如下：
 
@@ -1855,7 +1854,7 @@ private void doCheck()
 
 如下图：
 
-![nginx_limit_bulket](/nginx_limit_bulket.jpg)
+![nginx_limit_bulket](/imgs/nginx_limit_bulket.jpg)
 
 令牌算法是根据放令牌的速率去控制输出的速率。也就是后续透过去的请求速率。
 
@@ -2055,7 +2054,7 @@ upstream xxxx{
 	
 	接下来我们看下典型互联网架构中，如何通过冗余+自动故障转移来保证系统的高可用特性。
 
-![layerarchitect](/layerarchitect.png)
+![layerarchitect](/imgs/layerarchitect.png)
 
 常见互联网分布式架构如上，分为：
 
@@ -2077,11 +2076,11 @@ upstream xxxx{
 
 	【客户端层->反向代理层】的高可用
 
-![kavip](/kavip.png)
+![kavip](/imgs/kavip.png)
 
 【客户端层】到【反向代理层】的高可用，是通过反向代理层的冗余来实现的。以nginx为例：有两台nginx，一台对线上提供服务，另一台冗余以保证高可用，常见的实践是keepalived存活探测，相同virtual IP提供服务。
 
-![kafailover](/kafailover.png)
+![kafailover](/imgs/kafailover.png)
 
 自动故障转移：当nginx挂了的时候，keepalived能够探测到，会自动的进行故障转移，将流量自动迁移到shadow-nginx，由于使用的是相同的virtual IP，这个切换过程对调用方是透明的。 
 
@@ -2175,7 +2174,7 @@ cd keepalived-2.0.6
 sudo ./configure --prefix=/usr/local/keepalived --mandir=/usr/local/share/man/
 ```
 
-![keepalived_configure](/keepalived_configure.png)
+![keepalived_configure](/imgs/keepalived_configure.png)
 
 ```
 sudo make 
@@ -2191,7 +2190,7 @@ cd /usr/local/keepalived
 sudo sbin/keepalived -v 
 ```
 
-![keepalived_version_check](/keepalived_version_check.png)
+![keepalived_version_check](/imgs/keepalived_version_check.png)
 
 ### 6.3.3 安装成服务
 
@@ -2216,7 +2215,7 @@ sudo systemctl enable keepalived
 
 sudo service keepalived start
 
-![keepalived_start_check](/keepalived_start_check.png)
+![keepalived_start_check](/imgs/keepalived_start_check.png)
 
 看到上图提示，说明启动成功
 
@@ -2243,7 +2242,7 @@ nginx-1.14.0.tar.g
 
 	为了区分两个机器的访问情况，这里将每个机器的nginx访问首页内容做修改，分别加入Master和Slave字样，如图所示
 
-![master_nginx](/master_nginx.jpg)
+![master_nginx](/imgs/master_nginx.jpg)
 
 ### 6.4.3 配置keepalived
 
