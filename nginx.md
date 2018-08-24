@@ -58,7 +58,7 @@ nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为�
 
 ## 1.3  市场趋势
 
-	![market share](/imgs/market share.jpg)
+![market_share](/imgs/market_share.jpg)
 
 															~图片来源：https://news.netcraft.com/~
 
