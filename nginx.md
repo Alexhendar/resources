@@ -58,10 +58,10 @@ nginx（发音为“engine x”）是由俄罗斯软件工程师Igor Sysoev为�
 
 ## 1.3  市场趋势
 
-![market share](/imgs/market share.jpg)
+	![market share](/imgs/market share.jpg)
 
-													~图片来源：https://news.netcraft.com/~
-	
+															~图片来源：https://news.netcraft.com/~
+
 	虽然全球还有 50% Web 服务器是在用 Apache，但已有 1/3 的在使用 Nginx，并且两者之间的差距正在迅速缩小
 
 
