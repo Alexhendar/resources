@@ -114,19 +114,27 @@ sudo systemctl start nginx
 
 ### 2.1.2  源码编译安装
 
-	如果需要一些包管理器提供的nginx没有提供的功能，可以通过源码编译的方式进行安装。虽然这种方式灵活方便，但相对于nginx新手来说，这种方式稍微有点复杂。这里提供一个简单介绍，更详细的可以参考：http://nginx.org/en/docs/configure.html
-	
-	1、安装依赖，源码下载
+如果需要一些包管理器提供的nginx没有提供的功能，可以通过源码编译的方式进行安装。虽然这种方式灵活方便，但相对于nginx新手来说，这种方式稍微有点复杂。这里提供一个简单介绍，更详细的可以参考：http://nginx.org/en/docs/configure.html
+
+1、安装依赖，源码下载
 
 ```
-yum install gcc-c++ pcre pcre-devel zlib zlib-devel openssl openssl-devel
+sudo yum install gcc-c++ pcre pcre-devel zlib zlib-devel openssl openssl-devel
 
-sudo wget http://nginx.org/download/nginx-1.15.2.tar.gz
+sudo wget http://nginx.org/download/nginx-1.15.3.tar.gz
 ```
 
 地址从http://nginx.org/en/download.html页面获取，获取最新版本下载链接即可。
 
-	2、执行配置
+2、创建用户和组
+
+```
+sudo groupadd nginx
+sudo useradd  -g nginx nginx
+# 第一个nginx是组名，第二nginx是用户
+```
+
+3、执行配置
 
 ```
 ./configure 
@@ -153,7 +161,7 @@ sudo wget http://nginx.org/download/nginx-1.15.2.tar.gz
 --with-http_gzip_static_module
 ```
 
-	3、安装
+	4、安装
 
 ```
 sudo make
@@ -161,13 +169,13 @@ sudo make
 sudo make install
 ```
 
-	4、启动
+	5、启动
 
 ```
 nginx 
 ```
 
-	5、添加nginx到系统服务。创建nginx启动命令脚本
+	6、添加nginx到系统服务。创建nginx启动命令脚本
 
 ```
 	vim /etc/init.d/nginx
@@ -248,7 +256,7 @@ systemctl restart nginx.service
 systemctl reload nginx.service
 ```
 
-6、日志切割
+7、日志切割
 
 	linux日志文件如果不定期清理，会填满整个磁盘。这样会很危险，因此日志管理是系统管理员日常工作之一。我们可以使用"logrotate"来管理linux日志文件，它可以实现日志的自动滚动，日志归档等功能。下面以nginx日志文件来讲解下logrotate的用法
 	
@@ -322,6 +330,10 @@ Options:
 
 在你向nginx发出信号的前提就是nginx必须是已经启动起来的，这样它接受到信号的时候才可以执行相应操作，否则就会报错。因为它在执行信号处理相关逻辑的时候需要打开一些文件，而nginx不启动的时候这些文件是不存在的，就会导致打开文件错误。除此之外，也只有nginx在启动之后才可以一直监听具体接受到什么信号。如果不启动，系统根本不知如何处理。 
 
+参考：	1、https://www.nginx.com/resources/wiki/start/topics/tutorials/commandline/
+
+		2、http://nginx.org/en/docs/control.html
+
 ## 2.3  动态模块
 
 NGINX 1.9.11开始增加加载动态模块支持，从此不再需要替换nginx文件即可增加第三方扩展。目前官方只有几个模块支持动态加载，第三方模块需要升级支持才可编译成模块。
@@ -347,6 +359,7 @@ NGINX 1.9.11开始增加加载动态模块支持，从此不再需要替换nginx
 
 NGINX动态模块语法
 
+```
 load_module
 
 Default: —
@@ -355,21 +368,20 @@ Default: —
 
 说明：版本必须>=1.9.11
 
-```
 实例：load_module modules/ngx_mail_module.so;
 ```
 
 ## 2.4  配置文件简略
 
-	Nginx配置系统来自于Igor Sysoev使用Apache的经验。他认为可扩展的配置系统是web服务器的基础。当维护庞大复杂的包括大量的虚拟服务器、目录、位置和数据集等配置时，会遇到可伸缩性问题。对于一个相对大点的网站，系统管理员如果没有在应用层进行恰当的配置，那么这将会是一个噩梦。
-	
-	所以，nginx配置为简化日常维护而设计，并且提供了简单的手段用于web服务器将来的扩展。
-	
-	配置文件是一些文本文件，通常位于`/usr/local/etc/nginx`或`/etc/nginx`。主配置文件通常命名为`nginx.conf`。为了保持整洁，部分配置可以放到单独的文件中，再自动地被包含到主配置文件。但应该注意的是，nginx目前不支持Apache风格的分布式配置文件（如.htaccess文件），所有和nginx行为相关的配置都应该位于一个集中的配置文件目录中。
-	
-	Master进程启动时读取和校验这些配置文件。由于worker进程是从master进程派生的，所以可以使用一份编译好、只读的配置信息。配置信息结构通过常见的虚拟内存管理机制自动共享。
-	
-	nginx.conf配置文件结构
+Nginx配置系统来自于Igor Sysoev使用Apache的经验。他认为可扩展的配置系统是web服务器的基础。当维护庞大复杂的包括大量的虚拟服务器、目录、位置和数据集等配置时，会遇到可伸缩性问题。对于一个相对大点的网站，系统管理员如果没有在应用层进行恰当的配置，那么这将会是一个噩梦。
+
+所以，nginx配置为简化日常维护而设计，并且提供了简单的手段用于web服务器将来的扩展。
+
+配置文件是一些文本文件，通常位于`/usr/local/etc/nginx`或`/etc/nginx`。主配置文件通常命名为`nginx.conf`。为了保持整洁，部分配置可以放到单独的文件中，再自动地被包含到主配置文件。但应该注意的是，nginx目前不支持Apache风格的分布式配置文件（如.htaccess文件），所有和nginx行为相关的配置都应该位于一个集中的配置文件目录中。
+
+Master进程启动时读取和校验这些配置文件。由于worker进程是从master进程派生的，所以可以使用一份编译好、只读的配置信息。配置信息结构通过常见的虚拟内存管理机制自动共享。
+
+nginx.conf配置文件结构
 
 ```
 ...              #全局块
@@ -672,8 +684,12 @@ nginx内置的功能模块涵盖了我们平常使用的大部分功能，所有
 
 	实际上，事件驱动并不是计算机编程领域的专业词汇，它是一种比较古老的响应事件的模型，在计算机编程、公共关系、经济活动等领域均有很广泛的应用。顾名思义，事件驱动就是在持续事务管理过程中，由当前时间点上出现的事件引发的调动可用资源执行相关任务，解决不断出现的问题，防止事务堆积的一种策略。在计算机编程领域，事件驱动模型对应一种程序设计方式，Event-driven programming，即事件驱动程序设计。
 	事件驱动模型一般是由`事件收集器`，`事件发送器`，`事件处理器`三部分基本单元组成。
-	其中， `事件收集器`专门负责收集所有的事件，包括来自用户的（如鼠标单击事件、键盘输入事件等）、来自硬件的（如时钟事件等）和来自软件的（如操作系统、应用程序本身等）。
- 	`事件发送器`负责将收集器收集到的事件分发到目标对象中。目标对象就是事件处理器所处的位置。事件处理器主要负责具体事件的响应工作，它往往要到实现阶段才完全确定。
+
+ 	其中， `事件收集器`专门负责收集所有的事件，包括来自用户的（如鼠标单击事件、键盘输入事件等）、来自硬件的（如时钟事件等）和来自软件的（如操作系统、应用程序本身等）。
+
+	`事件发送器`负责将收集器收集到的事件分发到目标对象中。目标对象就是事件处理器所处的位置。
+	
+	`事件处理器`主要负责具体事件的响应工作，它往往要到实现阶段才完全确定。
  	在程序设计过程中，对事件驱动机制的实现方式有多种，这里介绍batch programming，即批次程序设计。批次的程序设计是一种比较初级的程序设计方式。使用批次程序设计的软件，其流程是由程序设计师在实际编码过程中决定的，也就是说，在程序运行的过程中，事件的发生、事件的发送和事件的处理都是预先设计好的。由此可见，事件驱动程序设计更多的关注了事件产生的随机性，使得应用程序能够具备相当的柔性，可以应付种种来自用户、硬件和系统的离散随机事件，这在很大程度上增强了用户和软件的交互性和用户操作的灵活性。
 	事件驱动程序可以由任何编程语言来实现，只是难易程度有别。如果一个系统是以事件驱动程序模型作为编程基础的，那么，它的架构基本上是这样的：预先设计一个事件循环所形成的程序，这个事件循环程序构成了“事件收集器”，它不断地检查目前要处理的事件信息，然后使用“事件发送器”传递给“事件处理器”。“事件处理器”一般运用虚函数机制来实现。
 
@@ -1631,9 +1647,23 @@ realserver 都正常的状态：
 
 ## 4.4  负载均衡策略及演示
 
+http://nginx.org/en/docs/http/load_balancing.html
+
+跨多个应用程序实例的负载平衡是一种常用技术，用于优化资源利用率，最大化吞吐量，减少延迟并确保容错配置。
+
+可以使用nginx作为非常有效的HTTP负载平衡器，将流量分配到多个应用程序服务器，并使用nginx提高Web应用程序的性能，可伸缩性和可靠性。
+
+负载均衡方法
+
+nginx支持以下负载平衡机制（或方法）：
+
+- 轮训。对应用程序服务器的请求以循环方式分发，
+- 最少连接 - 下一个请求被分配给活动连接数最少的服务器，
+- ip-hash - 哈希函数用于确定应为下一个请求选择哪个服务器（基于客户端的IP地址）。
+
 ### 4.4.1  轮询(默认)
 
-	每个请求按时间顺序逐一分配到不同的后端服务器，如果后端服务器down掉，能自动剔除。
+每个请求按时间顺序逐一分配到不同的后端服务器，如果后端服务器down掉，能自动剔除。
 
 ```
 upstream backserver {
@@ -1677,6 +1707,76 @@ upstream backserver {
 }
 ```
 
+#### 模块介绍
+
+The Nginx fair proxy balancer enhances the standard round-robin load balancer provided
+with Nginx so that it will track busy back end servers (e.g. Thin, Ebb, Mongrel)
+and balance the load to non-busy server processes.
+
+简单翻译一下，fair采用的不是内建负载均衡使用的轮换的均衡算法，而是可以根据页面大小、加载时间长短智能的进行负载均衡。
+下载地址：[nginx-upstream-fair](https://github.com/gnosek/nginx-upstream-fair?spm=a2c4e.11153940.blogcont73621.10.752155b93ao5QM)
+
+解压：
+
+```
+unzip  nginx-upstream-fair-master.zip
+```
+
+#### 模块安装
+
+#### 未安装Nginx
+
+切换到Nginx目录执行一下操作
+配置：
+
+```
+./configure --prefix=/usr/local/nginx  --sbin-path=/usr/local/nginx/nginx --conf-path=/usr/local/nginx/nginx.conf --pid-path=/usr/local/nginx/nginx.pid  --add-module=/home/nginx-upstream-fair-master
+```
+
+编译安装
+
+```
+make && make intstall
+```
+
+#### 安装过Nginx
+
+切换到Nginx目录执行一下操作
+
+配置
+
+```
+./configure --prefix=/usr/local/nginx  --sbin-path=/usr/local/nginx/nginx --conf-path=/usr/local/nginx/nginx.conf --pid-path=/usr/local/nginx/nginx.pid  --add-module=/home/nginx-upstream-fair-master
+```
+
+编译
+
+```
+make
+```
+
+复制Nginx
+
+```
+ cp objs/nginx /usr/local/nginx/nginx
+```
+
+#### 配置实现
+
+```
+upstream backserver { 
+fair; 
+server 192.168.0.14; 
+server 192.168.0.15; 
+} 
+```
+
+#### 注意事项
+
+已安装Nginx，配置第三方模块时，只需要--add-module=/第三方模块目录，然后make编译一下就可以，不要 make install 安装。编译后复制objs下面的Nginx到指定目录下。
+
+配置中path自行定义即可。
+
 ### 4.4.5  url_hash（第三方）
 
 	按访问url的hash结果来分配请求，使每个url定向到同一个后端服务器，后端服务器为缓存时比较有效。
@@ -1690,11 +1790,34 @@ hash_method crc32;
 }
 ```
 
+此模块从Nginx 1.7.2开始已过时
+
+参考：
+
+	1、https://github.com/evanmiller/nginx_upstream_hash
+
+### 4.4.6 Upstream Consistent Hash (第三方)
+
+使用内部一致性哈希环来选择正确的后端节点，常用于后端缓存。
+
+```
+upstream somestream {
+	consistent_hash $request_uri;
+    server 10.50.1.3:11211;
+    server 10.50.1.4:11211;
+    server 10.50.1.5:11211;
+}
+```
+
+参考：https://www.nginx.com/resources/wiki/modules/consistent_hash/
+
 ## 4.5  统计信息
 
-	做网站的都知道，平常经常要查询下网站PV、UV等网站的访问数据，当然如果网站做了CDN的话，nginx本地的日志就没什么意义了，下面就对nginx网站的日志访问数据做下统计；
-	
-	**概念：**
+### 4.5.1  日志统计
+
+做网站的都知道，平常经常要查询下网站PV、UV等网站的访问数据，当然如果网站做了CDN的话，nginx本地的日志就没什么意义了，下面就对nginx网站的日志访问数据做下统计；
+
+**概念：**
 
 > - UV(Unique Visitor)：独立访客，将每个独立上网电脑（以cookie为依据）视为一位访客，一天之内（00:00-24:00），访问您网站的访客数量。一天之内相同cookie的访问只被计算1次
 > - PV（Page View）：访问量,即页面浏览量或者点击量,用户每次对网站的访问均被记录1次。用户对同一页面的多次访问，访问量值累计
@@ -1734,6 +1857,98 @@ hash_method crc32;
 ```
 
 
+
+### 4.5.2  realip获取
+
+	Nginx反向代理后，Servlet应用通过request.getRemoteAddr()取到的IP是Nginx的IP地址，并非客户端真实IP，通过request.getRequestURL()获取的域名、协议、端口都是Nginx访问Web应用时的域名、协议、端口，而非客户端浏览器地址栏上的真实域名、协议、端口。
+
+	Nginx的反向代理实际上是客户端和真实的应用服务器之间的一个桥梁，客户端（一般是浏览器）访问Nginx服务器，Nginx再去访问Web应用服务器。对于Web应用来说，这次HTTP请求的客户端是Nginx而非真实的客户端浏览器，如果不做特殊处理的话，Web应用会把Nginx当作请求的客户端，获取到的客户端信息就是Nginx的一些信息。
+
+解决这个问题要从两个方面来解决： 
+
+```
+1、由于Nginx是代理服务器，所有客户端请求都从Nginx转发到Tomcat，如果Nginx不把客户端真实IP、域名、协议、端口告诉Tomcat，那么Tomcat应用是永远不会知道这些信息的，所以需要Nginx配置一些HTTP Header来将这些信息告诉被代理的Tomcat； 
+
+2、Tomcat这一端，不能再傻乎乎的获取直接和它连接的客户端（也就是Nginx）的信息，而是要从Nginx传递过来的HTTP Header中获取客户端信息。
+```
+
+Nginx
+在代理的每个location处添加以下配
+
+```
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+```
+
+解释以下上面的配置，以上配置是在Nginx反向代理的时候，添加一些请求Header。 
+1. Host包含客户端真实的域名和端口号； 
+2. X-Forwarded-Proto表示客户端真实的协议（http还是https）； 
+3. X-Real-IP表示客户端真实的IP； 
+4. X-Forwarded-For这个Header和X-Real-IP类似，但它在多层代理时会包含真实客户端及中间每个代理服务器的IP。
+
+#### 4.5.3.1 Servlet中获取真实IP
+
+	网上给出的解决方案大多是通过获取HTTP请求头request.getHeader("X-Forwarded-For")或request.getHeader("X-Real-IP")来实现，也就是上面在Nginx上配置的Header，这种方案获取的结果的确是正确的，但觉得并不优雅。
+
+因为既然Servlet API提供了request.getRemoteAddr()方法获取客户端IP，那么无论有没有用反向代理对于代码编写者来说应该是透明的。下面介绍一种更加优雅的方式。
+
+
+使用Tomcat作为应用服务器，可以通过配置Tomcat的server.xml文件，在Host元素内最后加入：即可
+
+```
+<Valve className="org.apache.catalina.valves.RemoteIpValve" />
+```
+
+#### 4.5.3.2  nginx获取真实IP
+
+在 http 模块 加
+
+```
+set_real_ip_from 172.17.10.125;
+# real_ip_header X-Forwarded-For;
+real_ip_recursive on;
+```
+
+即可！
+
+```
+1、set_real_ip_from 是指接受从哪个信任前代理处获得真实用户ip
+
+2、real_ip_header 是指从接收到报文的哪个http首部去获取前代理传送的用户ip
+
+3、real_ip_recursive 是否递归地排除直至得到用户ip（默认为off） 
+```
+
+首先，real_ip_header 指定一个http首部名称，默认是X-Real-Ip，假设用默认值的话，nginx在接收到报文后，会查看http首部X-Real-Ip。
+
+（1）如果有1个IP，它会去核对，发送方的ip是否在set_real_ip_from指定的信任ip列表中。如果是被信任的，它会去认为这个X-Real-Ip中的IP值是前代理告诉自己的，用户的真实IP值，于是，它会将该值赋值给自身的$remote_addr变量；如果不被信任，那么将不作处理，那么$remote_addr还是发送方的ip地址。
+
+（2）如果X-Real-Ip有多个IP值，比如前一方代理是这么设置的：proxy_set_header X-Real-Ip $proxy_add_x_forwarded_for , 得到的是一串IP，那么此时real_ip_recursive 的值就至关重要了。nginx将会从ip列表的右到左，去比较set_real_ip_from 的信任列表中的ip。如果real_ip_recursive为off，那么，当最右边一个IP，发现是信任IP，即认为下一个IP（右边第二个）就是用户的真正IP；如果real_ip_recursive为on，那么将从右到左依次比较，知道找到一个不是信任IP为止。然后同样把IP值复制给$remote_addr。
+
+#### 4.5.3.3 三种在CDN环境下获取用户IP方法总结
+
+1 CDN自定义header头
+
+- 优点：获取到最真实的用户IP地址,用户绝对不可能伪装IP
+- 缺点：需要CDN厂商提供
+
+2 获取forwarded-for头
+
+- 优点：可以获取到用户的IP地址
+- 缺点：程序需要改动,以及用户IP有可能是伪装的
+
+3 使用realip获取
+
+- 优点：程序不需要改动，直接使用remote_addr即可获取IP地址
+- 缺点：ip地址有可能被伪装，而且需要知道所有CDN节点的ip地址或者ip段
+
+参考：
+
+https://www.centos.bz/2017/03/nginx-using-set_real_ip_from-get-client-ip/
+
+### 4.5.3  nginx_status
 
 1、启用nginx status配置
 
@@ -2014,7 +2229,35 @@ upstream xxxx{
 
 ## 5.2  代理缓存
 
-	
+nginx的http_proxy模块，可以实现类似于Squid的缓存功能。Nginx对客户已经访问过的内容在Nginx服务器本地建立副本，这样在一段时间内再次访问该数据，就不需要通过Ｎginx服务器再次向后端服务器发出请求，所以能够减少Ｎginx服务器与后端服务器之间的网络流量，减轻网络拥塞，同时还能减小数据传输延迟，提高用户访问速度。同时，当后端服务器宕机时，Nginx服务器上的副本资源还能够回应相关的用户请求，这样能够提高后端服务器的鲁棒性
+
+---------------------
+```
+proxy_cache_path /path/to/cache levels=1:2 keys_zone=my_cache:10m max_size=10g inactive=60m use_temp_path=off;
+server {
+    set $upstream http://ip:port
+    location / {
+    proxy_cache my_cache;
+    proxy_pass $upstream;
+}
+```
+
+
+
+```
+/path/to/cache  #本地路径，用来设置Nginx缓存资源的存放地址
+levels          #默认所有缓存文件都放在同一个/path/to/cache下，但是会影响缓存的性能，因此通常会在/path/to/cache下面建立子目录用来分别存放不同的文件。假设levels=1:2，Nginx为将要缓存的资源生成的key为f4cd0fbc769e94925ec5540b6a4136d0，那么key的最后一位0，以及倒数第2-3位6d作为两级的子目录，也就是该资源最终会被缓存到/path/to/cache/0/6d目录中
+key_zone        #在共享内存中设置一块存储区域来存放缓存的key和metadata（类似使用次数），这样nginx可以快速判断一个request是否命中或者未命中缓存，1m可以存储8000个key，10m可以存储80000个key
+max_size        #最大cache空间，如果不指定，会使用掉所有disk space，当达到配额后，会删除最少使用的cache文件
+inactive        #未被访问文件在缓存中保留时间，本配置中如果60分钟未被访问则不论状态是否为expired，缓存控制程序会删掉文件。inactive默认是10分钟。需要注意的是，inactive和expired配置项的含义是不同的，expired只是缓存过期，但不会被删除，inactive是删除指定时间内未被访问的缓存文件
+use_temp_path   #如果为off，则nginx会将缓存文件直接写入指定的cache文件中，而不是使用temp_path存储，official建议为off，避免文件在不同文件系统中不必要的拷贝
+proxy_cache     #启用proxy cache，并指定key_zone。另外，如果proxy_cache off表示关闭掉缓存。
+
+```
+
+
+
+
 
 ## 5.3  静态资源缓存
 
@@ -2024,13 +2267,7 @@ upstream xxxx{
 
 # 6  Nginx高可用
 
-6.1  高可用介绍
-
-
-
-
-
-## 6.1  高可用
+## 6.1  高可用介绍
 
 ### 6.1.1  什么是高可用
 
@@ -2629,4 +2866,143 @@ service iptables save
 
 
 
-# 9 常见问题分析
+# 9 入门介绍
+
+## 9.1  Hello World
+
+	
+
+```
+sudo cp index.html helloworld.html
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Hello World!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Hello World<h1>
+</body>
+</html>
+```
+
+## 9.2  访问静态资源文件
+
+	将上一步中的helloworld.html放置到/usr/share/nginx/html目录中，修改名字为index.html,添加location配置
+
+```
+location /hello {                
+    alias /usr/share/nginx/html; 
+    index index.html index.htm;  
+}                                
+```
+
+访问http://IP/hello,即可看到与上一步一样内容的页面；
+
+再次验证。在该目录下放入其他稳进，比如json文件，按照目录了位置访问，即可验证。
+
+
+
+### 9.2.1 root与alias的区别
+
+	
+
+```
+location /hello {              
+    root /usr/share/nginx/html;
+    index index.html index.htm;
+}                              
+```
+
+这样配置的结果就是当客户端请求 /hello/user.json 的时候， 
+
+Nginx把请求映射为/usr/share/nginx/html/hello/user.json
+
+```
+location /hello {              
+    alias /usr/share/nginx/html;
+    index index.html index.htm;
+}  
+```
+
+这样配置的结果就是当客户端请求 /hello/user.json 的时候， 
+
+Nginx把请求映射为/usr/share/nginx/html/user.json
+
+> http://nginx.org/en/docs/http/ngx_http_core_module.html#root
+>
+> http://nginx.org/en/docs/http/ngx_http_core_module.html#alias
+
+### 9.2.2  反向代理IIS
+
+1、首先，设置IIS站点，选中默认的站点，点击右侧`操作`栏的浏览，
+
+![IIS_site_set](/imgs/nginx/IIS_site_set.jpg)
+
+打开inetpub的wwwroot目录，如图
+
+![IIS_site_wwwroot](/imgs/nginx/IIS_site_wwwroot.jpg)
+
+访问本地网站，这里设置了hosts文件，所以直接域名访问
+
+```
+127.0.0.1 www.alex.com
+```
+
+![IIS_default_index](/imgs/nginx/IIS_default_iisstart.jpg)
+
+
+
+2、在该目录中添加网页index.html
+
+```
+<!DOCTYPE html>
+<html>
+<head>
+<title>IIS Content!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+<meta charset="UTF-8">
+</head>
+<body>
+<h1>这里的内容来自IIS<h1>
+</body>
+</html>
+```
+
+刷新http://www.alex.com/，显示如下即为正常
+
+![www_alex_index](/imgs/nginx/www_alex_index.jpg)
+
+3、设置nginx反向代理处理
+
+```nginx
+location /iis {                      
+    index index.html index.htm;      
+    proxy_pass http://192.168.1.177/;
+}                                    
+```
+
+重新加载nginx配置
+
+```shell
+sudo systemctl reload nginx
+```
+
+4、验证反向代理，注意对比浏览器URL
+
+![master_alex_index](/imgs/nginx/master_alex_index.jpg)
+
+# 10 常见问题分析
