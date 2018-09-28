@@ -369,28 +369,28 @@ $ cd sinatra
 $ touch Dockerfile
 ```
 
-	Dockerfile 中每一条指令都创建镜像的一层， 例如：  
+Dockerfile 中每一条指令都创建镜像的一层， 例如：  
 
 ```
-# This is a comment
-FROM ubuntu:14.04
-MAINTAINER Docker Newbee <newbee@docker.com>
+#  This is a comment
+FROM ubuntu:latest
+MAINTAINER Alexhendar Zhang <zhangjunyong@pdmi.cn>
 RUN apt-get -qq update
 RUN apt-get -qqy install ruby ruby-dev
 RUN gem install sinatra
 ```
 
-	Dockerfile 基本的语法是  
+Dockerfile 基本的语法是  
 
 > - 使用 # 来注释
 > - FROM 指令告诉 Docker 使用哪个镜像作为基础
 > - 接着是维护者的信息
 > - RUN 开头的指令会在创建中运行， 比如安装一个软件包， 在这里使用 apt-get 来安装了一些软件
 
-	编写完成 Dockerfile 后可以使用 docker build 来生成镜像。  
+编写完成 Dockerfile 后可以使用 docker build 来生成镜像。  
 
 ```
-$ sudo docker build -t="ouruser/sinatra:v2" .
+$ sudo docker build -t="alexhendar/sinatra:v2" .
 Uploading context 2.56 kB
 Uploading context
 Step 0 : FROM ubuntu:14.04
@@ -425,11 +425,11 @@ Successfully built 324104cde6ad
 ```
 
 	其中 -t 标记来添加 tag， 指定新的镜像的用户信息。 “.” 是 Dockerfile 所在的路径（当前目录） ， 也可以 替换为一个具体的 Dockerfile 的路径。 
-	
+
 	可以看到 build 进程在执行操作。 它要做的第一件事情就是上传这个 Dockerfile 内容， 因为所有的操作都要 依据 Dockerfile 来进行。 然后， Dockfile 中的指令被一条一条的执行。 每一步都创建了一个新的容器， 在 容器中执行指令并提交修改（就跟之前介绍过的 docker commit 一样） 。 当所有的指令都执行完毕之 后， 返回了最终的镜像 id。 所有的中间步骤所产生的容器都被删除和清理了。
-	
+
 	 *注意一个镜像不能超过 127 层  
-	
+
 	此外， 还可以利用 ADD 命令复制本地文件到镜像；用 EXPOSE 命令来向外部开放端口；用 CMD 命令来 描述容器启动后运行的程序等。 例如  
 
 ```
@@ -444,13 +444,13 @@ CMD ["/usr/sbin/apachectl", "-D", "FOREGROUND"]
 	现在可以利用新创建的镜像来启动一个容器。  
 
 ```
-$ sudo docker run -t -i ouruser/sinatra:v2 /bin/bash root@8196968dac35:/#  
+$ sudo docker run -t -i alexhendar/sinatra:v2 /bin/bash root@8196968dac35:/#  
 ```
 
 	还可以用 docker tag 命令来修改镜像的标签。  
 
 ```
-$ sudo docker tag 5db5f8471261 ouruser/sinatra:devel
+$ sudo docker tag 5db5f8471261 alexhendar/sinatra:devel
 $ sudo docker images ouruser/sinatra
 REPOSITORY TAG IMAGE ID CREATED VIRTUAL SIZE
 ouruser/sinatra latest 5db5f8471261 11 hours ago 446.7 MB
@@ -463,11 +463,11 @@ ouruser/sinatra v2 5db5f8471261 11 hours ago 446.7 MB
 #### 3.1.3.3 从本地文件系统导入  
 
 	要从本地文件系统导入一个镜像， 可以使用 openvz（容器虚拟化的先锋技术） 的模板来创建： openvz 的 模板下载地址为 templates 。  
-	
-	比如， 先下载了一个 ubuntu-14.04 的镜像， 之后使用以下命令导入：  
+
+	比如， 先下载了一个 ubuntu-18.04 的镜像， 之后使用以下命令导入：  
 
 ```
-sudo cat ubuntu-14.04-x86_64-minimal.tar.gz |docker import - ubuntu:14.04
+sudo cat ubuntu-18.04-x86_64-minimal.tar.gz |docker import - ubuntu:18.04
 ```
 
 	然后查看新导入的镜像。   
@@ -475,7 +475,7 @@ sudo cat ubuntu-14.04-x86_64-minimal.tar.gz |docker import - ubuntu:14.04
 ```
 docker images
 REPOSITORY TAG IMAGE ID CREATED VIRTUAL SIZE
-ubuntu 14.04 05ac7c0b9383 17 seconds ago 215.5 MB
+ubuntu 18.04 05ac7c0b9383 17 seconds ago 215.5 MB
 ```
 
 ### 3.1.4  上传镜像 
@@ -483,10 +483,10 @@ ubuntu 14.04 05ac7c0b9383 17 seconds ago 215.5 MB
 	用户可以通过 docker push 命令， 把自己创建的镜像上传到仓库中来共享。 例如， 用户在 Docker Hub 上 完成注册后， 可以推送自己的镜像到仓库中。   
 
 ```
-$ sudo docker push ouruser/sinatra
-The push refers to a repository [ouruser/sinatra] (len: 1)
+$ sudo docker push alexhendar/sinatra
+The push refers to a repository [alexhendar/sinatra] (len: 1)
 Sending image list
-Pushing repository ouruser/sinatra (3 tags)
+Pushing repository alexhendar/sinatra (3 tags)
 ```
 
 ### 3.1.5 存出和载入镜像  
@@ -498,9 +498,9 @@ Pushing repository ouruser/sinatra (3 tags)
 ```
 $ sudo docker images
 REPOSITORY TAG IMAGE ID CREATED VIRTUAL SIZE
-ubuntu 14.04 c4ff7513909d 5 weeks ago 225.4 MB
+ubuntu 18.04 c4ff7513909d 5 weeks ago 225.4 MB
 ...
-$sudo docker save -o ubuntu_14.04.tar ubuntu:14.04
+$sudo docker save -o ubuntu_18.04.tar ubuntu:18.04
 ```
 
 #### 3.1.5.2 载入镜像  
