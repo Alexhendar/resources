@@ -185,6 +185,8 @@ net.bridge.bridge-nf-call-arptables = 1
 
 ```
 sudo shutdown -r now，
+或者
+sudo reboot
 ```
 
 Step 7 : 添加自动启动
@@ -242,37 +244,38 @@ sudo rm -f /run/docker
 ## 3.1  Docker 镜像  
 
 	在之前的介绍中， 我们知道镜像是 Docker 的三大组件之一。 
-	
+
 	Docker 运行容器前需要本地存在对应的镜像， 如果镜像不存在本地， Docker 会从镜像仓库下载（默认是 Docker Hub 公共注册服务器中的仓库） 。 
-	
+
 	本章将介绍更多关于镜像的内容， 包括： 从仓库获取镜像； 管理本地主机上的镜像； 介绍镜像实现的基本原理。  
 
 ### 3.1.1 获取镜像  
 
 	可以使用 docker pull 命令来从仓库获取所需要的镜像。  
-	
-	下面的例子将从 Docker Hub 仓库下载一个 Ubuntu 12.04 操作系统的镜像。  
+
+	下面的例子将从 Docker Hub 仓库下载一个 Ubuntu  操作系统的镜像。  当前最新版本为18.04
 
 ```
-$ sudo docker pull ubuntu:12.04
-Pulling repository ubuntu
-ab8e2728644c: Pulling dependent layers
-511136ea3c5a: Download complete
-5f0ffaa9455e: Download complete
-a300658979be: Download complete
-904483ae0c30: Download complete
-ffdaafd1ca50: Download complete
-d047ae21eeaf: Download complete
+[root@dangmei-0004 ~]# docker pull ubuntu
+Using default tag: latest
+latest: Pulling from library/ubuntu
+124c757242f8: Pull complete
+9d866f8bde2a: Pull complete
+fa3f2f277e67: Pull complete
+398d32b153e8: Pull complete
+afde35469481: Pull complete
+Digest: sha256:de774a3145f7ca4f0bd144c7d4ffb2931e06634f11529653b23eba85aef8e378
+Status: Downloaded newer image for ubuntu:latest
 ```
 
 	下载过程中， 会输出获取镜像的每一层信息。
-	
-	该命令实际上相当于 $ sudo docker pull registry.hub.docker.com/ubuntu:12.04 命令， 即从注册服 务器 registry.hub.docker.com 中的 ubuntu 仓库来下载标记为 12.04 的镜像。 
-	
+
+	该命令实际上相当于 $ sudo docker pull registry.hub.docker.com/ubuntu 命令， 即从注册服 务器 registry.hub.docker.com 中的 ubuntu 仓库来下载标记为 18.04 的镜像。 
+
 	有时候官方仓库注册服务器下载较慢， 可以从其他仓库下载。 从其它仓库下载时需要指定完整的仓库注册 服务器地址。 例如  
 
 ```
-$ sudo docker pull dl.dockerpool.com:5000/ubuntu:12.04
+$ sudo docker pull dl.dockerpool.com:5000/ubuntu
 Pulling dl.dockerpool.com:5000/ubuntu
 ab8e2728644c: Pulling dependent layers
 511136ea3c5a: Download complete
@@ -286,25 +289,25 @@ d047ae21eeaf: Download complete
 	完成后， 即可随时使用该镜像了， 例如创建一个容器， 让其中运行 bash 应用。  
 
 ```
-$ sudo docker run -t -i ubuntu:12.04 /bin/bash
+$ sudo docker run -t -i ubuntu:18.04 /bin/bash
 root@fe7fc4bd8fc9:/#
 ```
 
 ### 3.1.2列出本地镜像  
 
 	使用 docker images 显示本地已有的镜像。  
-	
+
 	在列出信息中， 可以看到几个字段信息 
 
 > 1. 来自于哪个仓库， 比如 ubuntu 
-> 2. 镜像的标记， 比如 14.04 
+> 2. 镜像的标记， 比如 18.04 
 > 3. 它的 ID 号（唯一） 
 > 4. 创建时间 
 > 5. 镜像大小 
 
-	其中镜像的 ID 唯一标识了镜像， 注意到 ubuntu:14.04 和 ubuntu:trusty 具有相同的镜像 ID ， 说明 它们实际上是同一镜像。  
-	
-	TAG 信息用来标记来自同一个仓库的不同镜像。 例如 ubuntu 仓库中有多个镜像， 通过 TAG 信息来区分 发行版本， 例如 10.04 、 12.04 、 12.10 、 13.04 、 14.04 等。 例如下面的命令指定使用镜像 ubuntu:14.04 来启动一个容器。  
+其中镜像的 ID 唯一标识了镜像， 注意到 ubuntu:18.04 和 ubuntu:trusty 具有相同的镜像 ID ， 说明 它们实际上是同一镜像。  
+
+TAG 信息用来标记来自同一个仓库的不同镜像。 例如 ubuntu 仓库中有多个镜像， 通过 TAG 信息来区分 发行版本， 例如 10.04 、 12.04 、 12.10 、 13.04 、 14.04、18.04  等。 例如下面的命令指定使用镜像 ubuntu:18.04 来启动一个容器。  
 
 如果不指定具体的标记， 则默认使用 latest 标记信息。  
 
@@ -318,11 +321,11 @@ root@fe7fc4bd8fc9:/#
 
 ```
 $ sudo docker run -t -i training/sinatra /bin/bash
-root@0b2616b0e5a8:/#
+root@132126d75eca:/#
 ```
 
 	注意：记住容器的 ID， 稍后还会用到。 
-	
+
 	在容器中添加 json 和 gem 两个应用。  
 
 ```
@@ -332,33 +335,32 @@ root@0b2616b0e5a8:/# gem install json
 	当结束后， 我们使用 exit 来退出， 现在我们的容器已经被我们改变了， 使用 docker commit 命令来提交 更新后的副本。  
 
 ```
-$ sudo docker commit -m "Added json gem" -a "Docker Newbee" 0b2616b0e5a8 ouruser/sinatra:v2
-4f177bd27a9ff0f6dc2a830403925b5360bfe0b93d476f7fc3231110e7f71b1c
+$ sudo docker commit -m "Added json gem" -a "Docker Newbee" 132126d75eca ouruser/sinatra:v2
+sha256:6254e52003cdd847f1390b5da31ba59348dd8b60248a6fc488e4f61df4a974d2
 ```
 
 	其中， -m 来指定提交的说明信息， 跟我们使用的版本控制工具一样； -a 可以指定更新的用户信息；之 后是用来创建镜像的容器的 ID；最后指定目标镜像的仓库名和 tag 信息。 创建成功后会返回这个镜像的 ID 信息。  
-	
+
 	使用 docker images 来查看新创建的镜像。  
 
 ```
-$ sudo docker images
-REPOSITORY TAG IMAGE ID CREATED VIRTUAL SIZE
-training/sinatra latest 5bc342fa0b91 10 hours ago 446.7 MB
-ouruser/sinatra v2 3c59e02ddd1a 10 hours ago 446.7 MB
-ouruser/sinatra latest 5db5f8471261 10 hours ago 446.7 MB
+$docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+ouruser/sinatra     v2                  6254e52003cd        4 seconds ago       453MB
+training/sinatra    latest              49d952a36c58        4 years ago         447MB
 ```
 
-	之后， 可以使用新的镜像来启动容器  
+之后， 可以使用新的镜像来启动容器  
 
 ```
 $ sudo docker run -t -i ouruser/sinatra:v2 /bin/bash
-root@78e82f680994:/#
+root@108768150dcc:/#
 ```
 
 #### 3.1.3.2 利用 Dockerfile 来创建镜像  
 
 	使用 docker commit 来扩展一个镜像比较简单， 但是不方便在一个团队中分享。 我们可以使用 docker build 来创建一个新的镜像。 为此， 首先需要创建一个 Dockerfile， 包含一些如何创建镜像的指令  
-	
+
 	新建一个目录和一个 Dockerfile  
 
 ```
