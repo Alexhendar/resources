@@ -20,7 +20,7 @@
 	首先， Docker 容器的启动可以在秒级实现， 这相比传统的虚拟机方式要快得多。 
 	其次， Docker 对系统资源的利用率很高， 一台主机上可以同时运行数千个 Docker 容器。容器除了运行其中应用外， 基本不消耗额外的系统资源， 使得应用的性能很高， 同时系统的开销尽量小。
 	传统虚拟机方式运行 10 个不同的应用就要起 10 个虚拟机， 而Docker 只需要启动 10 个隔离的应用即可。
-
+	
 	具体说来， Docker 在如下几个方面具有较大的优势。
 
 > 1、更快速的交付和部署  
@@ -61,17 +61,17 @@ Docker 包括三个基本概念
 ### 1.3.1 Docker 镜像  
 
 	Docker 镜像就是一个只读的模板。 
-
+	
 	例如：一个镜像可以包含一个完整的 ubuntu 操作系统环境， 里面仅安装了 Apache 或用户需要的其它应用 程序。 
-
+	
 	镜像可以用来创建 Docker 容器。 Docker 提供了一个很简单的机制来创建镜像或者更新现有的镜像， 用户甚至可以直接从其他人那里下载一 个已经做好的镜像来直接使用。  
 
 ### 1.3.2  Docker 容器  
 
 	Docker 利用容器来运行应用。 
-
+	
 	容器是从镜像创建的运行实例。 它可以被启动、 开始、 停止、 删除。 每个容器都是相互隔离的、 保证安全 的平台。 
-
+	
 	可以把容器看做是一个简易版的 Linux 环境（包括root用户权限、 进程空间、 用户空间和网络空间等） 和运 行在其中的应用程序。 
 
 *注：镜像是只读的， 容器在启动的时候创建一层可写层作为最上层。  
@@ -79,11 +79,11 @@ Docker 包括三个基本概念
 ### 1.3.3 Docker 仓库  
 
 	仓库是集中存放镜像文件的场所。 有时候会把仓库和仓库注册服务器（Registry） 混为一谈， 并不严格区 分。 实际上， 仓库注册服务器上往往存放着多个仓库， 每个仓库中又包含了多个镜像， 每个镜像有不同的 标签（tag） 。 
-
+	
 	仓库分为公开仓库（Public） 和私有仓库（Private） 两种形式。 
-
+	
 	最大的公开仓库是 Docker Hub， 存放了数量庞大的镜像供用户下载。 国内的公开仓库包括 Docker Pool 等， 可以提供大陆用户更稳定快速的访问。 
-
+	
 	当然， 用户也可以在本地网络内创建一个私有仓库。 当用户创建了自己的镜像之后就可以使用 push 命令将它上传到公有或者私有仓库， 这样下次在另外一台 机器上使用这个镜像时候， 只需要从仓库上 pull 下来就可以了。 
 
 *注：Docker 仓库的概念跟 Git 类似， 注册服务器可以理解为 GitHub 这样的托管服务。  
@@ -244,15 +244,15 @@ sudo rm -f /run/docker
 ## 3.1  Docker 镜像  
 
 	在之前的介绍中， 我们知道镜像是 Docker 的三大组件之一。 
-
+	
 	Docker 运行容器前需要本地存在对应的镜像， 如果镜像不存在本地， Docker 会从镜像仓库下载（默认是 Docker Hub 公共注册服务器中的仓库） 。 
-
+	
 	本章将介绍更多关于镜像的内容， 包括： 从仓库获取镜像； 管理本地主机上的镜像； 介绍镜像实现的基本原理。  
 
 ### 3.1.1 获取镜像  
 
 	可以使用 docker pull 命令来从仓库获取所需要的镜像。  
-
+	
 	下面的例子将从 Docker Hub 仓库下载一个 Ubuntu  操作系统的镜像。  当前最新版本为18.04
 
 ```
@@ -269,9 +269,9 @@ Status: Downloaded newer image for ubuntu:latest
 ```
 
 	下载过程中， 会输出获取镜像的每一层信息。
-
+	
 	该命令实际上相当于 $ sudo docker pull registry.hub.docker.com/ubuntu 命令， 即从注册服 务器 registry.hub.docker.com 中的 ubuntu 仓库来下载标记为 18.04 的镜像。 
-
+	
 	有时候官方仓库注册服务器下载较慢， 可以从其他仓库下载。 从其它仓库下载时需要指定完整的仓库注册 服务器地址。 例如  
 
 ```
@@ -296,7 +296,7 @@ root@fe7fc4bd8fc9:/#
 ### 3.1.2列出本地镜像  
 
 	使用 docker images 显示本地已有的镜像。  
-
+	
 	在列出信息中， 可以看到几个字段信息 
 
 > 1. 来自于哪个仓库， 比如 ubuntu 
@@ -325,7 +325,7 @@ root@132126d75eca:/#
 ```
 
 	注意：记住容器的 ID， 稍后还会用到。 
-
+	
 	在容器中添加 json 和 gem 两个应用。  
 
 ```
@@ -340,7 +340,7 @@ sha256:6254e52003cdd847f1390b5da31ba59348dd8b60248a6fc488e4f61df4a974d2
 ```
 
 	其中， -m 来指定提交的说明信息， 跟我们使用的版本控制工具一样； -a 可以指定更新的用户信息；之 后是用来创建镜像的容器的 ID；最后指定目标镜像的仓库名和 tag 信息。 创建成功后会返回这个镜像的 ID 信息。  
-
+	
 	使用 docker images 来查看新创建的镜像。  
 
 ```
@@ -360,7 +360,7 @@ root@108768150dcc:/#
 #### 3.1.3.2 利用 Dockerfile 来创建镜像  
 
 	使用 docker commit 来扩展一个镜像比较简单， 但是不方便在一个团队中分享。 我们可以使用 docker build 来创建一个新的镜像。 为此， 首先需要创建一个 Dockerfile， 包含一些如何创建镜像的指令  
-
+	
 	新建一个目录和一个 Dockerfile  
 
 ```
@@ -425,11 +425,11 @@ Successfully built 324104cde6ad
 ```
 
 	其中 -t 标记来添加 tag， 指定新的镜像的用户信息。 “.” 是 Dockerfile 所在的路径（当前目录） ， 也可以 替换为一个具体的 Dockerfile 的路径。 
-
+	
 	可以看到 build 进程在执行操作。 它要做的第一件事情就是上传这个 Dockerfile 内容， 因为所有的操作都要 依据 Dockerfile 来进行。 然后， Dockfile 中的指令被一条一条的执行。 每一步都创建了一个新的容器， 在 容器中执行指令并提交修改（就跟之前介绍过的 docker commit 一样） 。 当所有的指令都执行完毕之 后， 返回了最终的镜像 id。 所有的中间步骤所产生的容器都被删除和清理了。
-
+	
 	 *注意一个镜像不能超过 127 层  
-
+	
 	此外， 还可以利用 ADD 命令复制本地文件到镜像；用 EXPOSE 命令来向外部开放端口；用 CMD 命令来 描述容器启动后运行的程序等。 例如  
 
 ```
@@ -463,7 +463,7 @@ ouruser/sinatra v2 5db5f8471261 11 hours ago 446.7 MB
 #### 3.1.3.3 从本地文件系统导入  
 
 	要从本地文件系统导入一个镜像， 可以使用 openvz（容器虚拟化的先锋技术） 的模板来创建： openvz 的 模板下载地址为 templates 。  
-
+	
 	比如， 先下载了一个 ubuntu-18.04 的镜像， 之后使用以下命令导入：  
 
 ```
@@ -536,15 +536,15 @@ Deleted: 5c58979d73ae448df5af1d8142436d81116187a7633082650549c52c3a2418f0
 ### 3.1.7 镜像的实现原理  
 
 	Docker 镜像是怎么实现增量的修改和维护的？ 每个镜像都由很多层次构成， Docker 使用 Union FS 将这 些不同的层结合到一个镜像中去。 
-
+	
 	通常 Union FS 有两个用途, 一方面可以实现不借助 LVM、 RAID 将多个 disk 挂到同一个目录下,另一个更 常用的就是将一个只读的分支和一个可写的分支联合在一起， Live CD 正是基于此方法可以允许在镜像不 变的基础上允许用户在其上进行一些写操作。 Docker 在 AUFS 上构建的容器也是利用了类似的原理。  
 
 ## 3.2 Docker 容器  
 
 	容器是 Docker 又一核心概念。 
-
+	
 	简单的说， 容器是独立运行的一个或一组应用， 以及它们的运行态环境。 对应的， 虚拟机可以理解为模拟 运行的一整套操作系统（提供了运行态环境和其他系统环境） 和跑在上面的应用。 
-
+	
 	本章将具体介绍如何来管理一个容器， 包括创建、 启动和停止等。  
 
 ### 3.2.1 启动容器  
@@ -556,7 +556,7 @@ Deleted: 5c58979d73ae448df5af1d8142436d81116187a7633082650549c52c3a2418f0
 ### 3.2.2 新建并启动  
 
 	所需要的命令主要为 docker run 。 
-
+	
 	例如， 下面的命令输出一个 “Hello World”， 之后终止容器。  
 
 ```
@@ -572,7 +572,7 @@ root@af8bae53bdd3:/#
 ```
 
 	其中， -t 选项让Docker分配一个伪终端（pseudo-tty） 并绑定到容器的标准输入上， -i 则让容器的标 准输入保持打开。 
-
+	
 	在交互模式下， 用户可以通过所创建的终端来输入命令， 例如  
 
 ```
@@ -608,7 +608,7 @@ PID TTY TIME CMD
 ### 3.2.4 守护态运行  
 
 	更多的时候， 需要让 Docker 容器在后台以守护态（Daemonized） 形式运行。 此时， 可以通过添加 -d 参 数来实现。  
-
+	
 	例如下面的命令会在后台运行容器。  
 
 ```
@@ -734,7 +734,7 @@ $ sudo docker export 7691a814370e > ubuntu.tar
 ```
 
 	这样将导出容器快照到本地文件。  
-
+	
 	**导出 的意义是什么？**
 
 #### 3.2.7.2 导入容器快照  
@@ -770,9 +770,9 @@ trusting_newton
 ## 3.3 仓库  
 
 	仓库（Repository） 是集中存放镜像的地方。 
-
+	
 	一个容易混淆的概念是注册服务器（Registry） 。 实际上注册服务器是管理仓库的具体服务器， 每个服务器 上可以有多个仓库， 而每个仓库下面有多个镜像。 从这方面来说， 仓库可以被认为是一个具体的项目或目 录。 例如对于仓库地址 dl.dockerpool.com/ubuntu 来说， dl.dockerpool.com 是注册服务器地 址， ubuntu 是仓库名。 
-
+	
 	大部分时候， 并不需要严格区分这两者的概念。  
 
 ### 3.3.1  Docker Hub 
@@ -786,7 +786,7 @@ trusting_newton
 #### 3.3.1.2 基本操作  
 
 	用户无需登录即可通过 docker search 命令来查找官方仓库中的镜像， 并利用 docker pull 命令来将 它下载到本地。  
-
+	
 	例如以 centos 为关键词进行搜索：   
 
 ```
@@ -805,9 +805,9 @@ centos/python-35-centos7           Platform for building and running Python 3.5�
 ```
 
 	可以看到返回了很多包含关键字的镜像， 其中包括镜像名字、 描述、 星级（表示该镜像的受欢迎程度） 、 是否官方创建、 是否自动创建。 官方的镜像说明是官方项目组创建和维护的， automated 资源允许用户验 证镜像的来源和内容。  
-
+	
 	根据是否是官方提供， 可将镜像资源分为两类。 一种是类似 centos 这样的基础镜像， 被称为基础或根镜 像。 这些基础镜像是由 Docker 公司创建、 验证、 支持、 提供。 这样的镜像往往使用单个单词作为名字。 还有一种类型， 比如 tianon/centos 镜像， 它是由 Docker 的用户创建并维护的， 往往带有用户名称前 缀。 可以通过前缀 user_name/ 来指定使用某个用户提供的镜像， 比如 tianon 用户。  
-
+	
 	另外， 在查找的时候通过 -s N 参数可以指定仅显示评价为 N 星以上的镜像。  
 
 下载官方 centos 镜像到本地。  
@@ -826,7 +826,7 @@ Pulling repository centos
 #### 3.3.1.3 自动创建  
 
 	自动创建（Automated Builds） 功能对于需要经常升级镜像内程序来说， 十分方便。 有时候， 用户创建了 镜像， 安装了某个软件， 如果软件发布新版本则需要手动更新镜像。  
-
+	
 	而自动创建允许用户通过 Docker Hub 指定跟踪一个目标网站（目前支持 GitHub 或 BitBucket） 上的项 目， 一旦项目发生新的提交， 则自动执行创建。  
 
 要配置自动创建， 包括如下的步骤：  
@@ -842,9 +842,9 @@ Pulling repository centos
 ### 3.3.2 私有仓库  
 
 	有时候使用 Docker Hub 这样的公共仓库可能不方便， 用户可以创建一个本地仓库供私人使用。  
-
+	
 	本节介绍如何使用本地仓库 、
-
+	
 	docker-registry 是官方提供的工具， 可以用于构建私有的镜像仓库。  
 
 #### 3.3.2.1安装运行 docker-registry  
@@ -932,31 +932,32 @@ $ sudo gunicorn --access-logfile - --error-logfile - -k gevent -b 0.0.0.0:5000 -
 #### 3.3.2.2 在私有仓库上传、 下载、 搜索镜像  
 
 	创建好私有仓库之后， 就可以使用 docker tag 来标记一个镜像， 然后推送它到仓库， 别的机器上就可以 下载下来了。 例如私有仓库地址为 192.168.7.26:5000 。  
-
+	
 	先在本机查看已有的镜像。  
 
 ```
 $ sudo docker images
 REPOSITORY TAG IMAGE ID CREATED VIRTUAL
-ubuntu latest ba5877dc9bec 6 weeks ago 192.7 M
-ubuntu 18.04 ba5877dc9bec 6 weeks ago
+ubuntu latest cd6d8154f1e1 6 weeks ago 84.1MB
+ubuntu 18.04 cd6d8154f1e1 6 weeks ago	84.1MB
 ```
 
 使用 docker tag 将 ba58 这个镜像标记为 192.168.7.26:5000/test （格式为 docker tag IMAGE[:TAG][REGISTRYHOST/][USERNAME/]NAME[:TAG] ） 。  
 
 ```
-$ sudo docker tag ba58 192.168.7.26:5000/test
+$ docker tag ubuntu:latest  192.168.1.198:5000/ubuntu:18.4
+
 root ~ # docker images
 REPOSITORY TAG IMAGE ID CREATED VIRTUAL
-ubuntu 18.04 ba5877dc9bec 6 weeks ago 192.7 M
-ubuntu latest ba5877dc9bec 6 weeks ago 192.7 M
-192.168.7.26:5000/test latest ba5877dc9bec 6 weeks ago
+192.168.1.198:5000/ubuntu   18.4                cd6d8154f1e1        3 weeks ago         84.1MB
+ubuntu                      18.04               cd6d8154f1e1        3 weeks ago         84.1MB
+ubuntu                      latest              cd6d8154f1e1        3 weeks ago         84.1MB
 ```
 
 	使用 docker push 上传标记的镜像。  
 
 ```
-$ sudo docker push 192.168.7.26:5000/test
+$ docker push 192.168.1.198:5000/ubuntu
 The push refers to a repository [192.168.7.26:5000/test] (len: 1)
 Sending image list
 Pushing repository 192.168.7.26:5000/test (1 tags)
@@ -969,15 +970,59 @@ Image ba5877dc9bec already pushed, skipping
 Pushing tag for rev [ba5877dc9bec] on {http://192.168.7.26:5000/v1/repositories/test/tags/latest}
 ```
 
-	用 curl 查看仓库  !!!  ?
+
+
+vim  /etc/docker/daemon.json
 
 ```
-$ curl http://192.168.7.26:5000/v1/search
-{"num_results": 7, "query": "", "results": [{"description": "", "name": "library/miaxis_j2ee"}, {"des
+{
+  "insecure-registries": [
+    "192.168.1.198:5000"
+  ]
+}
 ```
 
-	这里可以看到 {"description": "", "name": "library/test"} ， 表明镜像已经被成功上传了。   
+重启docker,重新启动registry
 
+```
+$ systemctl restart docker
+
+$ docker ps -a
+CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS                      PORTS               NAMES
+66a72cff0971        registry             "/entrypoint.sh /etc…"   8 hours ago         Exited (2) 11 seconds ago                       silly_mayer
+
+$ docker start silly_mayer
+
+$ docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES66a72cff0971        registry            "/entrypoint.sh /etc…"   8 hours ago         Up 5 seconds        0.0.0.0:5000->5000/tcp   silly_mayer
+```
+
+再次推送
+
+```
+$ docker push 192.168.1.198:5000/ubuntu
+The push refers to a repository [192.168.7.26:5000/test] (len: 1)
+Sending image list
+Pushing repository 192.168.7.26:5000/test (1 tags)
+Image 511136ea3c5a already pushed, skipping
+Image 9bad880da3d2 already pushed, skipping
+Image 25f11f5fb0cb already pushed, skipping
+Image ebc34468f71d already pushed, skipping
+Image 2318d26665ef already pushed, skipping
+Image ba5877dc9bec already pushed, skipping
+Pushing tag for rev [ba5877dc9bec] on {http://192.168.7.26:5000/v1/repositories/test/tags/latest}
+```
+
+```
+# curl http://192.168.1.198:5000/v2/_catalog
+{"repositories":["ubuntu"]}
+
+# curl http://192.168.1.198:5000/v2/ubuntu/tags/list
+{"name":"ubuntu","tags":["18.4"]}
+```
+
+	表明镜像已经被成功上传了。   
+	
 	现在可以到另外一台机器去下载这个镜像。  
 
 ```
@@ -996,61 +1041,428 @@ REPOSITORY TAG IMAGE ID CREATED VIRTUA
 
 #### 3.3.2.3  仓库配置文件  
 
-	Docker 的 Registry 利用配置文件提供了一些仓库的模板（flavor） ， 用户可以直接使用它们来进行开发或 生产部署。  
+​	Registry 的配置基于 YAML 文件，下面会详细描述。虽然它带有默认值，但你应该在将系统移至生产环境之前进行详尽的检查。 
 
-##### 3.3.2.3.1 模板  
+##### 3.3.2.3.1 覆盖特定的配置选项 
 
-	在 config_sample.yml 文件中， 可以看到一些现成的模板段：  
+​	在从官方镜像运行 registry 的典型设置中，可以通过将 `-e` 参数传递环境变量到 `docker run` 或使用 `ENV` 指令从 Dockerfile 中指定一个配置变量。
 
-> - common ：基础配置 
-> - local ：存储数据到本地文件系统 
-> - s3 ：存储数据到 AWS S3 中 
-> - dev ：使用 local 模板的基本配置 
-> - test ：单元测试使用 
-> - prod ：生产环境配置（基本上跟s3配置类似） 
-> - gcs ：存储数据到 Google 的云存储 
-> - swift ：存储数据到 OpenStack Swift 服务 
-> - glance ：存储数据到 OpenStack Glance 服务， 本地文件系统为后备 
-> - glance-swift ：存储数据到 OpenStack Glance 服务， Swift 为后备 
-> - elliptics ：存储数据到 Elliptics key/value 存储  
-
-	用户也可以添加自定义的模版段。  
-
-	默认情况下使用的模板是 dev ， 要使用某个模板作为默认值， 可以添加 SETTINGS_FLAVOR 到环境变量 中， 例如  
+​	要覆盖配置选项，请创建一个名为 `REGISTRY_variable` 的环境变量，其中 `variable` 是配置选项的名称，`_`（下划线）表示缩进级别。例如，可以配置 `filesystem` 存储后端的 `rootdirectory`：
 
 ```
-export SETTINGS_FLAVOR=dev
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
 ```
 
-	另外， 配置文件中支持从环境变量中加载值， 语法格式为 _env:VARIABLENAME[:DEFAULT] 。   
+可以设置环境变量来覆盖这些值：
 
-##### 3.3.2.3.2 示例配置   
+	REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/somewhere
+
+​	该变量将 `/var/lib/registry` 值覆盖到 `/somewhere` 目录。
+
+> 注意：使用可配置为调整单个值的环境变量创建基本配置文件。不建议使用环境变量覆盖配置节（section）。
+
+##### 3.3.2.3.2 覆盖整个配置文件
+
+​	如果默认配置不适合你的使用，或者如果覆盖环境中的 key 时遇到问题，则可以指定 YAML 配置文件并将其作为卷装载到容器中。
+
+​	通常，从头开始创建一个名为 `config.yml` 的新配置文件，然后在 `docker run` 命令中指定它：
 
 ```
-common:
-    loglevel: info
-    search_backend: "_env:SEARCH_BACKEND:"
-    sqlalchemy_index_database:
-    "_env:SQLALCHEMY_INDEX_DATABASE:sqlite:////tmp/docker-registry.db"
-prod:
-    loglevel: warn
-    storage: s3
-    s3_access_key: _env:AWS_S3_ACCESS_KEY
-    s3_secret_key: _env:AWS_S3_SECRET_KEY
-    s3_bucket: _env:AWS_S3_BUCKET
-    boto_bucket: _env:AWS_S3_BUCKET
-    storage_path: /srv/docker
-    smtp_host: localhost
-    from_addr: docker@myself.com
-    to_addr: my@myself.com
-dev:
-    loglevel: debug
-    storage: local
-    storage_path: /home/myself/docker
-test:
-    storage: local
-    storage_path: /tmp/tmpdockertmp
+
 ```
+
+​	以此示例 YAML 文件为起点。
+
+
+
+##### 3.3.2.3.3 配置选项列表
+
+​	这些都是 registry 的配置选项。列表中的某些选项是互斥的。在完成配置之前，阅读有关每个选项的详细参考信息。
+
+> version: 0.1
+> log:
+>   accesslog:
+> ​    disabled: true
+>   level: debug
+>   formatter: text
+>   fields:
+> ​    service: registry
+> ​    environment: staging
+>   hooks:
+> ​    - type: mail
+> ​      disabled: true
+> ​      levels:
+> ​        - panic
+> ​      options:
+> ​          smtp:
+> ​          addr: mail.example.com:25
+> ​          username: mailuser
+> ​          password: password
+> ​          insecure: true
+> ​          from: sender@example.com
+> ​          to:
+> ​          - errors@example.com
+> loglevel: debug # deprecated: use "log"
+> storage:
+> ​      filesystem:
+> ​        rootdirectory: /var/lib/registry
+> ​        maxthreads: 100
+> ​      azure:
+> ​        accountname: accountname
+> ​        accountkey: base64encodedaccountkey
+> ​        container: containername
+> ​      gcs:
+> ​        bucket: bucketname
+> ​        keyfile: /path/to/keyfile
+> ​        rootdirectory: /gcs/object/name/prefix
+> ​        chunksize: 5242880
+> ​      s3:
+> ​        accesskey: awsaccesskey
+> ​        secretkey: awssecretkey
+> ​        region: us-west-1
+> ​        regionendpoint: http://myobjects.local
+> ​        bucket: bucketname
+> ​        encrypt: true
+> ​        keyid: mykeyid
+> ​        secure: true
+> ​        v4auth: true
+> ​        chunksize: 5242880
+> ​        multipartcopychunksize: 33554432
+> ​        multipartcopymaxconcurrency: 100
+> ​        multipartcopythresholdsize: 33554432
+> ​        rootdirectory: /s3/object/name/prefix
+> ​      swift:
+> ​        username: username
+> ​        password: password
+> ​        authurl: https://storage.myprovider.com/auth/v1.0 or https://storage.myprovider.com/v2.0 or https://storage.myprovider.com/v3/auth
+> ​        tenant: tenantname
+> ​        tenantid: tenantid
+> ​        domain: domain name for Openstack Identity v3 API
+> ​        domainid: domain id for Openstack Identity v3 API
+> ​        insecureskipverify: true
+> ​        region: fr
+> ​        container: containername
+> ​        rootdirectory: /swift/object/name/prefix
+> ​      oss:
+> ​        accesskeyid: accesskeyid
+> ​        accesskeysecret: accesskeysecret
+> ​        region: OSS region name
+> ​        endpoint: optional endpoints
+> ​        internal: optional internal endpoint
+> ​        bucket: OSS bucket
+> ​        encrypt: optional data encryption setting
+> ​        secure: optional ssl setting
+> ​        chunksize: optional size valye
+> ​        rootdirectory: optional root directory
+> ​      inmemory:  # This driver takes no parameters
+> ​      delete:
+> ​        enabled: false
+> ​      redirect:
+> ​        disable: false
+> ​      cache:
+> ​        blobdescriptor: redis
+> ​      maintenance:
+> ​        uploadpurging:
+> ​      enabled: true
+> ​      age: 168h
+> ​      interval: 24h
+> ​      dryrun: false
+> ​        readonly:
+> ​      enabled: false
+> auth:
+> ​      silly:
+> ​        realm: silly-realm
+> ​        service: silly-service
+> ​      token:
+> ​        realm: token-realm
+> ​        service: token-service
+> ​        issuer: registry-token-issuer
+> ​        rootcertbundle: /root/certs/bundle
+> ​      htpasswd:
+> ​        realm: basic-realm
+> ​        path: /path/to/htpasswd
+> middleware:
+> ​      registry:
+> ​        - name: ARegistryMiddleware
+> ​      options:
+> ​          foo: bar
+> ​      repository:
+> ​        - name: ARepositoryMiddleware
+> ​      options:
+> ​          foo: bar
+> ​      storage:
+> ​        - name: cloudfront
+> ​      options:
+> ​          baseurl: https://my.cloudfronted.domain.com/
+> ​          privatekey: /path/to/pem
+> ​          keypairid: cloudfrontkeypairid
+> ​          duration: 3000s
+> ​      storage:
+> ​        - name: redirect
+> ​      options:
+> ​          baseurl: https://example.com/
+> reporting:
+> ​      bugsnag:
+> ​        apikey: bugsnagapikey
+> ​        releasestage: bugsnagreleasestage
+> ​        endpoint: bugsnagendpoint
+> ​      newrelic:
+> ​        licensekey: newreliclicensekey
+> ​        name: newrelicname
+> ​        verbose: true
+> http:
+> ​      addr: localhost:5000
+> ​      prefix: /my/nested/registry/
+> ​      host: https://myregistryaddress.org:5000
+> ​      secret: asecretforlocaldevelopment
+> ​      relativeurls: false
+> ​      tls:
+> ​        certificate: /path/to/x509/public
+> ​        key: /path/to/x509/private
+> ​        clientcas:
+> ​      - /path/to/ca.pem
+> ​      - /path/to/another/ca.pem
+> ​        letsencrypt:
+> ​      cachefile: /path/to/cache-file
+> ​      email: emailused@letsencrypt.com
+> ​      debug:
+> ​        addr: localhost:5001
+> ​      headers:
+> ​        X-Content-Type-Options: [nosniff]
+> ​      http2:
+> ​        disabled: false
+> notifications:
+> ​      endpoints:
+> ​        - name: alistener
+> ​      disabled: false
+> ​      url: https://my.listener.com/event
+> ​      headers: <http.Header>
+> ​      timeout: 500
+> ​      threshold: 5
+> ​      backoff: 1000
+> ​      ignoredmediatypes:
+> ​        - application/octet-stream
+> redis:
+> ​      addr: localhost:6379
+> ​      password: asecret
+> ​      db: 0
+> ​      dialtimeout: 10ms
+> ​      readtimeout: 10ms
+> ​      writetimeout: 10ms
+> ​      pool:
+> ​        maxidle: 16
+> ​        maxactive: 64
+> ​        idletimeout: 300s
+> health:
+> ​      storagedriver:
+> ​        enabled: true
+> ​        interval: 10s
+> ​        threshold: 3
+> ​      file:
+> ​        - file: /path/to/checked/file
+> ​      interval: 10s
+> ​      http:
+> ​        - uri: http://server.to.check/must/return/200
+> ​      headers:
+> ​          Authorization: [Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==]
+> ​      statuscode: 200
+> ​      timeout: 3s
+> ​      interval: 10s
+> ​      threshold: 3
+> ​      tcp:
+> ​        - addr: redis-server.domain.com:6379
+> ​      timeout: 3s
+> ​      interval: 10s
+> ​      threshold: 3
+> proxy:
+> ​      remoteurl: https://registry-1.docker.io
+> ​      username: [username]
+> ​      password: [password]
+> compatibility:
+> ​      schema1:
+> ​        signingkeyfile: /etc/registry/key.json
+> validation:
+> ​      enabled: true
+> ​      manifests:
+> ​        urls:
+> ​      allow:
+> ​        - ^https?://([^/]+\.)*example\.com/
+> ​      deny:
+> ​        - ^https?://www\.example\.com/
+
+​	在某些情况下，配置选项是可选的，但它包含标记为必需的子选项。在这些情况下，可以忽略父选项及其所有子选项。但是，如果使用了父选项，则必须包括所有必选的子选项。
+
+##### 3.3.2.3.4 version
+
+```
+version: 0.1
+```
+
+​	`version` 选项是**必需**的。它指定配置的版本。它必须是顶级域，以便在解析配置文件的其余部分之前进行一致的版本检查。
+
+
+
+##### 3.3.2.3.5 log
+
+​	日志子部分配置日志记录系统的行为。日志记录系统将所有内容输出到标准输出。可以使用此配置部分调整粒度和格式。
+
+```
+log:
+  accesslog:
+    disabled: true
+  level: debug
+  formatter: text
+  fields:
+    service: registry
+    environment: staging
+```
+
+  level ; 非必须  ;  设置记出日志的灵敏度。允许的值有 error，warn，info 和 debug。默认是 info。
+
+
+  formatter ; 非必须  ;  选择日志输出的格式。该格式主要影响对日志行的键控属性进行编码的方式。选项是 text，json 和 logstash。默认值是 text。
+
+
+  fields ; 非必须  ;  字段名称到值的映射。这些被添加到上下文的每个日志行。这对于在其他系统中混合后识别日志消息源很有用。
+
+-------------------------------------
+
+accesslog
+
+​	在 `log` 内，`accesslog` 配置访问日志记录系统的行为。默认情况下，访问日志记录系统以组合日志格式输出到标准输出。可以通过将布尔标志 `disabled` 设置为 `true` 来禁用访问日志记录。
+
+##### 3.3.2.3.5  hooks
+
+```
+hooks:
+  - type: mail
+    levels:
+      - panic
+    options:
+      smtp:
+        addr: smtp.pdmi.cn:25
+        username: devops
+        password: ******
+        insecure: true
+      from: devops@pdmi.cn
+      to:
+        - zhangjunyong@pdmi.cn 
+```
+
+​	`hooks` 子部分配置日志 hooks 的行为。例如，该小节包含一个序列处理程序，可以使用它来发送邮件。请参阅 `loglevel`以配置打印的消息级别。
+
+##### 3.3.2.3.6  storage
+
+```
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+  azure:
+    accountname: accountname
+    accountkey: base64encodedaccountkey
+    container: containername
+  gcs:
+    bucket: bucketname
+    keyfile: /path/to/keyfile
+    rootdirectory: /gcs/object/name/prefix
+  s3:
+    accesskey: awsaccesskey
+    secretkey: awssecretkey
+    region: us-west-1
+    regionendpoint: http://myobjects.local
+    bucket: bucketname
+    encrypt: true
+    keyid: mykeyid
+    secure: true
+    v4auth: true
+    chunksize: 5242880
+    multipartcopychunksize: 33554432
+    multipartcopymaxconcurrency: 100
+    multipartcopythresholdsize: 33554432
+    rootdirectory: /s3/object/name/prefix
+  swift:
+    username: username
+    password: password
+    authurl: https://storage.myprovider.com/auth/v1.0 or https://storage.myprovider.com/v2.0 or https://storage.myprovider.com/v3/auth
+    tenant: tenantname
+    tenantid: tenantid
+    domain: domain name for Openstack Identity v3 API
+    domainid: domain id for Openstack Identity v3 API
+    insecureskipverify: true
+    region: fr
+    container: containername
+    rootdirectory: /swift/object/name/prefix
+  oss:
+    accesskeyid: accesskeyid
+    accesskeysecret: accesskeysecret
+    region: OSS region name
+    endpoint: optional endpoints
+    internal: optional internal endpoint
+    bucket: OSS bucket
+    encrypt: optional data encryption setting
+    secure: optional ssl setting
+    chunksize: optional size valye
+    rootdirectory: optional root directory
+  inmemory:
+  delete:
+    enabled: false
+  cache:
+    blobdescriptor: inmemory
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h
+      interval: 24h
+      dryrun: false
+    readonly:
+      enabled: false
+  redirect:
+    disable: false
+```
+
+​	存储选项是必需的，它定义了哪个存储后端正在使用中。必须完全配置一个后端。如果配置了多个存储后端，则 registry 会返回错误。可以选择以下任何后端存储驱动程序：
+
+![registry_storage](imgs/docker/registry_storage.jpg)
+
+​	仅用于测试的话，可以使用 inmemory [存储驱动程序](https://github.com/docker/docker.github.io/tree/master/registry/storage-drivers/inmemory.md)。如果你想从易失性存储器运行 registry，请在 ramdisk 上使用 [文件系统驱动程序](https://github.com/docker/docker.github.io/tree/master/registry/storage-drivers/filesystem.md)。
+
+​	如果在 Windows 上部署 registry，则不推荐从主机挂载 Windows 卷。相反，可以使用 S3 或 Azure 支持数据存储。如果确实使用 Windows 卷，则到安装点的 `PATH` 长度必须在 `MAX_PATH` 限制（通常为255个字符）内，否则会发生此错误：
+
+maintenance
+
+-------
+
+​	目前，上传清除和只读模式是唯一可用的 `maintenance`（维护）功能。
+
+uploadpurging
+
+------
+
+​	上传清除（uploadpurging）是一个后台进程，可以定期从 registry 的上传目录中删除孤立的文件。上传清除默认情况下处于启用状态。要配置上传目录清除，必须设置以下参数。
+
+![registry_storage_uploadpurging](imgs/docker/registry_storage_uploadpurging.jpg)
+
+> 注意：`age` 和 `interval` 是包含具有可选的分数和单位后缀的数字的字符串。例如：45m，2h10m，168h。
+
+
+
+参考：
+
+[Docker 开源项目之 registry - 配置 registry](https://blog.csdn.net/kikajack/article/details/79692156)
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 4 Docker 数据管理  
 
@@ -1075,11 +1487,62 @@ test:
 ### 4.1.1创建一个数据卷  
 
 	在用 docker run 命令的时候， 使用 -v 标记来创建一个数据卷并挂载到容器里。 在一次 run 中多次使用 可以挂载多个数据卷。  
-
+	
 	下面创建一个 web 容器， 并加载一个数据卷到容器的 /webapp 目录。  
 
 ```
-$ sudo docker run -d -P --name web -v /webapp training/webapp python app.py
+docker run  -it --name test1 -v /test1 ubuntu /bin/bash
+```
+
+​	这条命令会在docker里面mount一个test1的目录，这个目录会和另外一个目录做映射
+
+```
+# docker inspect -f {{.Config.Volumes}} test1
+map[/test1:{}]
+```
+
+​	显示为空，此法 在此不可行。直接看容器的所有信息 再grep
+
+```
+# docker inspect test1|grep Mounts -A 10
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "27f09377f02e203f12bffda849e66caca988e2605abdde4dd4b8584336379edd",
+                "Source": "/var/lib/docker/volumes/27f09377f02e203f12bffda849e66caca988e2605abdde4dd4b8584336379edd/_data",
+                "Destination": "/test1",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+```
+
+​	找到对应的目录是：
+
+```
+/var/lib/docker/volumes/27f09377f02e203f12bffda849e66caca988e2605abdde4dd4b8584336379edd/_data
+```
+
+​	进入容器中创建一个文件：
+
+```
+root@5901ad70e723:/# cd /test1/
+root@5901ad70e723:/test1# pwd
+/test1
+root@5901ad70e723:/test1# echo 123 >a
+root@5901ad70e723:/test1# cat a
+123
+```
+
+在宿主机的对应的目录中查看：
+
+```
+[root@damei-0004 _data]# cd /var/lib/docker/volumes/08ca65fdcb4db0f1c59d5efea11781d0eeedea8bf0643b11b659ebe642ff5d8a/_data
+[root@damei-0004 _data]# ls
+a
+[root@damei-0004 _data]# cat a
+123
 ```
 
 *注意：也可以在 Dockerfile 中使用 VOLUME 来添加一个或者多个新的卷到由该镜像创建的任意容器。   
@@ -1089,18 +1552,35 @@ $ sudo docker run -d -P --name web -v /webapp training/webapp python app.py
 	使用 -v 标记也可以指定挂载一个本地主机的目录到容器中去。  
 
 ```
-$ sudo docker run -d -P --name web -v /src/webapp:/opt/webapp training/webapp python app.py
+#  docker run -it --name test1 -v /data/web:/web ubuntu bash
 ```
 
- 	上面的命令加载主机的 /src/webapp 目录到容器的 /opt/webapp 目录。 这个功能在进行测试的时候十分 方便， 比如用户可以放置一些程序到本地目录中， 来查看容器是否正常工作。 本地目录的路径必须是绝对 路径， 如果目录不存在 Docker 会自动为你创建它。  
+ 	上面的命令加载主机的/data/web 目录到容器的/web目录。 这个功能在进行测试的时候十分 方便， 比如用户可以放置一些程序到本地目录中， 来查看容器是否正常工作。 本地目录的路径必须是绝对 路径， 如果目录不存在 Docker 会自动为你创建它。  
+
+```
+# docker run -it --name test1 -v /data/web:/web ubuntu bash
+root@071fc3ed2094:/# cd /web/
+root@071fc3ed2094:/web# echo 'Hello Volume' > b.txt
+root@071fc3ed2094:/web# cat b.txt
+Hello Volume
+```
+
+​	主机上操作
+
+```
+[root@damei-0004 data]# cd web/
+[root@dangmei-0004 web]# ls
+b.txt
+[root@dangmei-0004 web]# cat b.txt
+Hello Volume
+```
 
 *注意：Dockerfile 中不支持这种用法， 这是因为 Dockerfile 是为了移植和分享用的。 然而， 不同操作系统 的路径格式不一样， 所以目前还不能支持。  
 
 	Docker 挂载数据卷的默认权限是读写， 用户也可以通过 :ro 指定为只读。   
 
 ```
-$ sudo docker run -d -P --name web -v /src/webapp:/opt/webapp:ro
-training/webapp python app.py
+# docker run -it --name test1 -v /data/web:/web:ro ubuntu bash
 ```
 
 	加了 :ro 之后， 就挂载为只读了。   
@@ -1114,10 +1594,8 @@ $ sudo docker run --rm -it -v ~/.bash_history:/.bash_history ubuntu /bin/bash
 ```
 
 	这样就可以记录在容器输入过的命令了。   
-
+	
 	*注意：如果直接挂载一个文件， 很多文件编辑工具， 包括 vi 或者 sed --in-place ， 可能会造成文件 inode 的改变， 从 Docker 1.1 .0起， 这会导致报错误信息。 所以最简单的办法就直接挂载文件的父目录。  
-
-
 
 
 
@@ -1128,18 +1606,18 @@ $ sudo docker run --rm -it -v ~/.bash_history:/.bash_history ubuntu /bin/bash
 ### 4.2.1 数据卷容器
 
 	数据卷容器， 其实就是一个正常的容器， 专门用来提供数据卷供其它容器挂载的。 
-
+	
 	首先， 创建一个命名的数据卷容器 dbdata：  
 
 ```
-$ sudo docker run -d -v /dbdata --name dbdata training/postgres echo Data-only container for postgres
+$ docker run  --name dbdata -v /data/web:/web ubuntu bash
 ```
 
 	然后， 在其他容器中使用 --volumes-from 来挂载 dbdata 容器中的数据卷。   
 
 ```
-$ sudo docker run -d --volumes-from dbdata --name db1 training/postgres
-$ sudo docker run -d --volumes-from dbdata --name db2 training/postgres
+docker run  --name db1 -it --volumes-from dbdata ubuntu bash
+docker run  --name db2 -it --volumes-from dbdata ubuntu bash
 ```
 
 	还可以使用多个 --volumes-from 参数来从多个容器挂载多个数据卷。 也可以从其他已经挂载了数据卷的 容器来挂载数据卷。  
@@ -1158,13 +1636,20 @@ $ sudo docker run -d --name db3 --volumes-from db1 training/postgres
 
 #### 4.2.2.1 备份   
 
-	首先使用 --volumes-from 标记来创建一个加载 dbdata 容器卷的容器， 并从本地主机挂载当前到容器的 /backup 目录。 命令如下：  
+​	首先使用 --volumes-from 标记来创建一个加载 dbdata 容器卷的容器， 并从本地主机挂载当前到容器的 /backup 目录。 进入容器中命令如下：  
 
 ```
-$ sudo docker run --volumes-from dbdata -v $(pwd):/backup ubuntu tar cvf /backup/backup.tar /dbdata
+# docker start  db1
+# docker attach db1
+root@06034a73f0fb:/# cd /web/
+root@06034a73f0fb:/web# tar cvf /web/backup.tar ./
+./
+./c.txt
+./d.txt
+tar: ./backup.tar: file is the archive; not dumped
 ```
 
-	容器启动后， 使用了 tar 命令来将 dbdata 卷备份为本地的 /backup/backup.tar 。   
+容器启动后， 使用了 tar 命令来将 dbdata 卷备份为本地的 /data/web/backup.tar 。   
 
 #### 4.2.2.2  恢复
 
@@ -1199,25 +1684,32 @@ $ sudo docker run --volumes-from dbdata2 -v $(pwd):/backup busybox tar xvf
 
 ```
 $ sudo docker run -d -P training/webapp python app.py
-$ sudo docker ps -l
-CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS
-bc533791f3f5 training/webapp:latest python app.py 5 seconds ago Up 2 seconds 0.0.0.0:49155->5000
+# docker ps -l
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS                     NAMES
+8944348cbbf4        training/webapp     "python app.py"     6 minutes ago       Up 6 minutes        0.0.0.0:32768->5000/tcp   festive_stonebraker
 ```
 
 	同样的， 可以通过 docker logs 命令来查看应用的信息。  
 
 ```
-$ sudo docker logs -f nostalgic_morse
-* Running on http://0.0.0.0:5000/
-10.0.2.2 - - [23/May/2014 20:16:31] "GET / HTTP/1.1" 200 -
-10.0.2.2 - - [23/May/2014 20:16:31] "GET /favicon.ico HTTP/1.1" 404 -
+# docker logs festive_stonebraker
+ * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+192.168.1.198 - - [29/Sep/2018 08:47:59] "GET / HTTP/1.1" 200 -
+192.168.1.198 - - [29/Sep/2018 08:48:07] "HEAD / HTTP/1.1" 200 -
+192.168.1.198 - - [29/Sep/2018 08:48:12] "GET / HTTP/1.1" 200 -
 ```
 
-	-p（小写的） 则可以指定要映射的端口， 并且， 在一个指定端口上只可以绑定一个容器。 支持的格式有 ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort 。  
+​	访问验证：
+
+```
+
+```
 
 
 
 ### 5.1.1 映射所有接口地址   
+
+​	-p（小写的） 则可以指定要映射的端口， 并且， 在一个指定端口上只可以绑定一个容器。 支持的格式有 ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort 。  
 
 	使用 hostPort:containerPort 格式本地的 5000 端口映射到容器的 5000 端口， 可以执行  
 
@@ -1349,7 +1841,7 @@ aed84ee21bde training/webapp:latest python app.py 16 hours ago Up 2 minutes
 	可以看到自定义命名的容器， db 和 web， db 容器的 names 列有 db 也有 web/db。 这表示 web 容器链接 到 db 容器， web 容器将被允许访问 db 容器的信息  
 
 
-	
+​	
 
 
 
@@ -2125,6 +2617,14 @@ vethe6e5
 
 
 
+
+
+
+
+
+
+
+
 # 9  Dockerfile  
 
 	使用 Dockerfile 可以允许用户创建自定义的镜像。  
@@ -2700,7 +3200,7 @@ docker [OPTIONS] COMMAND [arg...]
 
 ## 13.2 选项  
 
-	
+​	
 
 ```
 -D=true|false
