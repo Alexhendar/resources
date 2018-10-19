@@ -1,0 +1,18 @@
+<templateSet group="myGroup">
+  <template name="methodcomment" value="/**&#10; * &lt;p&gt;$method$ : &lt;/p&gt;&#10; * @Auther: $user$&#10; * @Date: $date$ $time$&#10; * @param $param$&#10; * @return $return$&#10; */" shortcut="ENTER" description="方法注释" toReformat="false" toShortenFQNames="true">
+    <variable name="method" expression="methodName()" defaultValue="method" alwaysStopAt="false" />
+    <variable name="user" expression="user()" defaultValue="" alwaysStopAt="true" />
+    <variable name="date" expression="date()" defaultValue="" alwaysStopAt="true" />
+    <variable name="time" expression="time()" defaultValue="" alwaysStopAt="true" />
+    <variable name="param" expression="methodParameters()" defaultValue="" alwaysStopAt="true" />
+    <variable name="return" expression="methodReturnType()" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="JAVA_CODE" value="true" />
+    </context>
+  </template>
+  <template name="constructorcomment" value="/**&#10; * 创建一个新的实例 ${enclosing_type}. &#10; * &lt;p&gt;Description: &lt;/p&gt;&#10; * ${tags}&#10; */" shortcut="ENTER" description="构造方法注释" toReformat="false" toShortenFQNames="true">
+    <context>
+      <option name="JAVA_CODE" value="true" />
+    </context>
+  </template>
+</templateSet>
