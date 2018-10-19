@@ -118,6 +118,8 @@ sudo ln -s /usr/lib64/libfdfsclient.so /usr/lib/libfdfsclient.so
 sudo wget https://github.com/happyfish100/fastdfs/archive/V5.11.tar.gz
 ```
 
+注:  如果从2.2过来，首先返回上层目录
+
 2、解压
 
 ```
@@ -140,6 +142,7 @@ sudo ./make.sh install
 执行脚本
 sudo cp init.d/* /etc/init.d/
 
+#// 以下两行不需要执行
 /etc/init.d/fdfs_storaged
 /etc/init.d/fdfs_tracker
 ```
@@ -196,10 +199,10 @@ vim fdfs_storaged
 	B、二是建立 /usr/bin 到 /usr/local/bin 的软链接，我是用这种方式。
 
 ```
-# ln -s /usr/bin/fdfs_trackerd   /usr/local/bin
-# ln -s /usr/bin/fdfs_storaged   /usr/local/bin
-# ln -s /usr/bin/stop.sh         /usr/local/bin
-# ln -s /usr/bin/restart.sh      /usr/local/bin
+# sudo ln -s /usr/bin/fdfs_trackerd   /usr/local/bin
+# sudo ln -s /usr/bin/fdfs_storaged   /usr/local/bin
+# sudo ln -s /usr/bin/stop.sh         /usr/local/bin
+# sudo ln -s /usr/bin/restart.sh      /usr/local/bin
 ```
 
 
@@ -212,8 +215,8 @@ vim fdfs_storaged
 
 ```
 # cd /etc/fdfs
-# cp tracker.conf.sample tracker.conf
-# vim tracker.conf
+# sudo cp tracker.conf.sample tracker.conf
+# sudo vim tracker.conf
 ```
 
 2、编辑tracker.conf ，修改以下内容，其它的默认即可。
@@ -264,11 +267,13 @@ sudo firewall-cmd --zone=public --list-ports
 
 ```
 可以用这种方式启动
-# /etc/init.d/fdfs_trackerd start
+# sudo /etc/init.d/fdfs_trackerd start
 
 也可以用这种方式启动，前提是上面创建了软链接或修改了配置文件，后面都用这种方式
 # service fdfs_trackerd start
-或sudo systemctl start fdfs_trackerd
+
+或
+sudo systemctl start fdfs_trackerd	[首次不可用]
 ```
 
 查看 FastDFS Tracker 是否已成功启动 ，22122端口正在被监听，则算是Tracker服务安装成功。
@@ -323,8 +328,8 @@ sudo tree /data/fastdfs/tracker/
 
 ```
 # cd /etc/fdfs
-# cp storage.conf.sample storage.conf
-# vim storage.conf
+# sudo cp storage.conf.sample storage.conf
+# sudo vim storage.conf
 ```
 
 2、编辑storage.conf ，修改以下内容，其它的默认即可。
@@ -380,8 +385,9 @@ sudo firewall-cmd --zone=public --list-ports
 # /etc/init.d/fdfs_storaged  start
 
 也可以用这种方式启动，前提是上面创建了软链接或修改了配置文件，后面都用这种方式
-# service fdfs_storaged  start
-或sudo systemctl start fdfs_storaged
+# sudo service fdfs_storaged  start
+或
+sudo systemctl start fdfs_storaged	[首次不可用]
 ```
 
 查看 FastDFS Storage 是否已成功启动 ，23000 端口正在被监听，则算是Storage 服务安装成功。
@@ -411,6 +417,24 @@ Executing /sbin/chkconfig fdfs_storaged on
 
 ![fastdfs_monitor_storage](/imgs/fastdfs/fastdfs_monitor_storage.jpg)
 
+
+
+补充:
+
+**storage server的7种状态:**
+​     通过命令 fdfs_monitor /etc/fdfs/client.conf 可以查看 ip_addr 选项显示 storage server 当前状态
+ INIT : 初始化,尚未得到同步已有数据的源服务器 
+
+WAIT_SYNC : 等待同步,已得到同步已有数据的源服务器 
+
+SYNCING : 同步中
+ DELETED : 已删除,该服务器从本组中摘除
+ OFFLINE :离线
+ ONLINE : 在线,尚不能提供服务
+ ACTIVE : 在线,可以提供服务
+
+
+
 8、查看Storage 目录
 
 同 Tracker，Storage 启动成功后，在base_path 下创建了data、logs目录，记录着 Storage Server 的信息。
@@ -425,8 +449,8 @@ Executing /sbin/chkconfig fdfs_storaged on
 
 ```
 # cd /etc/fdfs
-# cp client.conf.sample client.conf
-# vim client.conf
+# sudo cp client.conf.sample client.conf
+# sudo vim client.conf
 ```
 
 修改如下配置即可，其它默认。
@@ -482,6 +506,8 @@ http://master.alex.com/group1/M00/00/00/rBYuKFuqWd6ALVhxAAWoc4Ciebo466.png
 
 ## 3.3 FastDFS 配置 Nginx 模块
 
+![fast_nginx_yuanli](/imgs/fastdfs/fast_nginx_yuanli.jpg)
+
 1、安装配置Nginx模块
 
 	fastdfs-nginx-module 模块说明
@@ -504,7 +530,7 @@ http://master.alex.com/group1/M00/00/00/rBYuKFuqWd6ALVhxAAWoc4Ciebo466.png
 # sudo tar zxvf 5e5f3566bbfa57418b5506aaefbe107a42c9fcb1.tar.gz
 
 # 重命名
-# mv fastdfs-nginx-module-5e5f3566bbfa57418b5506aaefbe107a42c9fcb1  fastdfs-nginx-module-master
+# mv fastdfs-nginx-module-5e5f3566bbfa57418b5506aaefbe107a42c9fcb1  fastdfs-nginx-module
 
 ```
 
@@ -833,12 +859,47 @@ public static void DeleteFile()
 
 ## 4.5 断点续传
 
-	fastdfs支持断点续传需要客户进行切片上传，并且切片字节大小小于等于storage配置的buff_size，默认是256k。当fastdfs storage接收客户端上传数据时，如果出现超时的情况会对文件offset和接收时记录的start、end进行比较，当offset>start 并且 offset < end时即写入文件的数据是应接收的一部分数据时，会truncate。所以当切片大小小于buff_size时，每次写入时如果发生异常，因未达到buff_size，所以服务端还未写入文件，不会产生truncate问题。注意发生异常，下次传输时，需根据fileid获取服务端的文件大小，然后对文件流进行skip之后，继续上传即可。
+		fastdfs支持断点续传需要客户进行切片上传，并且切片字节大小小于等于storage配置的buff_size，默认是256k。
+		当fastdfs storage接收客户端上传数据时，如果出现超时的情况会对文件offset和接收时记录的start、end进行比较，当offset>start 并且 offset < end时即写入文件的数据是应接收的一部分数据时，会truncate。
+		所以当切片大小小于buff_size时，每次写入时如果发生异常，因未达到buff_size，所以服务端还未写入文件，不会产生truncate问题。注意发生异常，下次传输时，需根据fileid获取服务端的文件大小，然后对文件流进行skip之后，继续上传即可。
 
 1、核心代码
 
 ```
 FastDFSClient.AppendFile("group1", fileName, content);
+```
+
+
+
+---------
+
+
+
+上传文件时有2种方式可选择：upload_file与upload_appender_file。
+前者上传的文件上传后不能修改，后者可以修改。
+前者上传的文件如果需要更新，可通过删除后再上传的途径来达到更新的目的。
+
+```
+echo "Hello " >test1.txt
+echo "World" >test2.txt
+
+fdfs_upload_appender /etc/fdfs/client.conf test1.txt
+group1/M00/00/00/rBYuI1uzEBGEBdK7AAAAAFYYMDI375.txt
+
+fdfs_file_info /etc/fdfs/client.conf group1/M00/00/00/rBYuI1uzEBGEBdK7AAAAAFYYMDI375.txt
+source storage id: 0
+source ip address: 172.22.46.35
+file create timestamp: 2018-10-02 14:28:33
+file size: 7
+file crc32: 1444425778 (0x56183032)
+
+fdfs_append_file /etc/fdfs/client.conf group1/M00/00/00/rBYuI1uzEBGEBdK7AAAAAFYYMDI375.txt test2.txt
+
+
+$ cat /data/fastdfs/file/data/00/00/rBYuI1uzEBGEBdK7AAAAAFYYMDI375.txt
+Hello
+World
+
 ```
 
 

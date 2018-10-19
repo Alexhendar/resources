@@ -239,6 +239,44 @@ sudo rm -f /run/docker
 
 
 
+## 3.3  Hello World
+
+​	完成之后，我们来使用docker来测试一下HelloWorld，通过输入docker pull hello-world来拉取hello-world镜像
+
+​	这样我们就从仓库拉取到了HelloWorld的镜像，接下来我们来运行一下，通过输入docker run hello-world
+
+```
+# docker run hello-world
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+d1725b59e92d: Pull complete
+Digest: sha256:0add3ace90ecb4adbf7777e9aacf18357296e799f81cabc9fde470971e499788
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+```
+
+​	出现以上内容说明hello-world运行成功
+
 # 3  Docker三大基础组件
 
 ## 3.1  Docker 镜像  
@@ -462,7 +500,7 @@ ouruser/sinatra v2 5db5f8471261 11 hours ago 446.7 MB
 
 #### 3.1.3.3 从本地文件系统导入  
 
-	要从本地文件系统导入一个镜像， 可以使用 openvz（容器虚拟化的先锋技术） 的模板来创建： openvz 的 模板下载地址为 templates 。  
+	要从本地文件系统导入一个镜像， 可以使用 openvz（容器虚拟化的先锋技术） 的模板来创建： openvz 的 模板下载地址为 templates。  
 	
 	比如， 先下载了一个 ubuntu-18.04 的镜像， 之后使用以下命令导入：  
 
@@ -682,7 +720,7 @@ $ make nsenter && sudo cp nsenter /usr/local/bin
 
 **使用**
 
-	nsenter 可以访问另一个进程的名字空间。 nsenter 要正常工作需要有 root 权限。 很不幸， Ubuntu 14.04 仍然使用的是 util-linux 2.20。 安装最新版本的 util-linux（2.24） 版， 请按照以下步骤：  
+	nsenter 可以访问另一个进程的名字空间。 nsenter 要正常工作需要有 root 权限。 很不幸， Ubuntu 14.04 仍然使用的是 util-linux 2.20。 安装最新版本的 util-linux（2.30） 版， 请按照以下步骤：  
 
 ```
 $ wget https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.30/util-linux-2.30.tar.gz; 
@@ -942,7 +980,7 @@ ubuntu latest cd6d8154f1e1 6 weeks ago 84.1MB
 ubuntu 18.04 cd6d8154f1e1 6 weeks ago	84.1MB
 ```
 
-使用 docker tag 将 ba58 这个镜像标记为 192.168.7.26:5000/test （格式为 docker tag IMAGE[:TAG][REGISTRYHOST/][USERNAME/]NAME[:TAG] ） 。  
+使用 docker tag 将 cd6d8154f1e1 这个镜像标记为 192.168.7.26:5000/test （格式为 docker tag IMAGE[:TAG][REGISTRYHOST/][USERNAME/]NAME[:TAG] ） 。  
 
 ```
 $ docker tag ubuntu:latest  192.168.1.198:5000/ubuntu:18.4
@@ -1488,7 +1526,7 @@ uploadpurging
 
 	在用 docker run 命令的时候， 使用 -v 标记来创建一个数据卷并挂载到容器里。 在一次 run 中多次使用 可以挂载多个数据卷。  
 	
-	下面创建一个 web 容器， 并加载一个数据卷到容器的 /webapp 目录。  
+	下面创建一个 ubuntu 容器， 并加载一个数据卷到容器的 /test1 目录。  
 
 ```
 docker run  -it --name test1 -v /test1 ubuntu /bin/bash
@@ -1680,7 +1718,7 @@ $ sudo docker run --volumes-from dbdata2 -v $(pwd):/backup busybox tar xvf
 	
 	当使用 -P 标记时， Docker 会随机映射一个 49000~49900 的端口到内部容器开放的网络端口。  
 	
-	使用 docker ps 可以看到， 本地主机的 49155 被映射到了容器的 5000 端口。 此时访问本机的 49155 端 口即可访问容器内 web 应用提供的界面  
+	使用docker ps可以看到， 本地主机的32768被映射到了容器的 5000 端口。 此时访问本机的 32768 端口即可访问容器内web应用提供的界面  
 
 ```
 $ sudo docker run -d -P training/webapp python app.py
@@ -1702,7 +1740,8 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 ​	访问验证：
 
 ```
-
+# curl http://192.168.1.198:32768
+Hello world!
 ```
 
 
@@ -1711,10 +1750,10 @@ CONTAINER ID        IMAGE               COMMAND             CREATED             
 
 ​	-p（小写的） 则可以指定要映射的端口， 并且， 在一个指定端口上只可以绑定一个容器。 支持的格式有 ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort 。  
 
-	使用 hostPort:containerPort 格式本地的 5000 端口映射到容器的 5000 端口， 可以执行  
+	使用 hostPort:containerPort 格式本地的 6000 端口映射到容器的 5000 端口， 可以执行  
 
 ```
-$ sudo docker run -d -p 5000:5000 training/webapp python app.py
+$ sudo docker run -d -p 6000:5000 training/webapp python app.py
 ```
 
 	此时默认会绑定本地所有接口上的所有地址。   
@@ -1724,7 +1763,7 @@ $ sudo docker run -d -p 5000:5000 training/webapp python app.py
 	可以使用 ip:hostPort:containerPort 格式指定映射使用一个特定地址， 比如 localhost 地址 127.0.0.1   
 
 ```
-$ sudo docker run -d -p 127.0.0.1:5000:5000 training/webapp python app.py
+$ sudo docker run -d -p 127.0.0.1:6000:5000 training/webapp python app.py
 ```
 
 ### 5.1.3 映射到指定地址的任意端口   
@@ -1746,13 +1785,13 @@ $ sudo docker run -d -p 127.0.0.1:5000:5000/udp training/webapp python app.py
 	使用 docker port 来查看当前映射的端口配置， 也可以查看到绑定的地址   
 
 ```
-$ docker port nostalgic_morse 5000
-127.0.0.1:49155.
+# docker port festive_stonebraker 5000
+0.0.0.0:32769
 ```
 
 注意：  
 
-> 1. 容器有自己的内部网络和 ip 地址（使用 docker inspect 可以获取所有的变量， Docker 还可以有一 个可变的网络配置。 ）
+> 1. 容器有自己的内部网络和 ip 地址（使用 docker inspect 可以获取所有的变量， Docker 还可以有一个可变的网络配置。 ）
 > 2.  -p 标记可以多次使用来绑定多个端口  
 
 	例如  
@@ -1838,7 +1877,11 @@ CONTAINER ID IMAGE COMMAND CREATED STATUS
 aed84ee21bde training/webapp:latest python app.py 16 hours ago Up 2 minutes
 ```
 
-	可以看到自定义命名的容器， db 和 web， db 容器的 names 列有 db 也有 web/db。 这表示 web 容器链接 到 db 容器， web 容器将被允许访问 db 容器的信息  
+-----
+
+​	没有看到效果
+
+​	可以看到自定义命名的容器， db 和 web， db 容器的 names 列有 db 也有 web/db。 这表示 web 容器链接 到 db 容器， web 容器将被允许访问 db 容器的信息  
 
 
 ​	
@@ -1855,32 +1898,54 @@ aed84ee21bde training/webapp:latest python app.py 16 hours ago Up 2 minutes
 	使用 env 命令来查看 web 容器的环境变量  
 
 ```
-$ sudo docker run --rm --name web2 --link db:db training/webapp env
-. . .
-DB_NAME=/web2/db
-DB_PORT=tcp://172.17.0.5:5432
-DB_PORT_5000_TCP=tcp://172.17.0.5:5432
-DB_PORT_5000_TCP_PROTO=tcp
-DB_PORT_5000_TCP_PORT=5432
-DB_PORT_5000_TCP_ADDR=172.17.0.5
+[zjy@master docker]$ sudo docker exec -it app env
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=e0b659e7b569
+TERM=xterm
+MYSQL_PORT=tcp://172.17.0.2:3306
+MYSQL_PORT_3306_TCP=tcp://172.17.0.2:3306
+MYSQL_PORT_3306_TCP_ADDR=172.17.0.2
+MYSQL_PORT_3306_TCP_PORT=3306
+MYSQL_PORT_3306_TCP_PROTO=tcp
+MYSQL_PORT_33060_TCP=tcp://172.17.0.2:33060
+MYSQL_PORT_33060_TCP_ADDR=172.17.0.2
+MYSQL_PORT_33060_TCP_PORT=33060
+MYSQL_PORT_33060_TCP_PROTO=tcp
+MYSQL_NAME=/app/mysql
+MYSQL_ENV_MYSQL_ROOT_PASSWORD=123456
+MYSQL_ENV_GOSU_VERSION=1.7
+MYSQL_ENV_MYSQL_MAJOR=5.7
+MYSQL_ENV_MYSQL_VERSION=5.7.23-1debian9
+LANG=C.UTF-8
+JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+JAVA_VERSION=8u111
+JAVA_DEBIAN_VERSION=8u111-b14-2~bpo8+1
+CA_CERTIFICATES_JAVA_VERSION=20140324
+HOME=/root
 ```
 
-	其中 DB_ 开头的环境变量是供 web 容器连接 db 容器使用， 前缀采用大写的连接别名。
+	其中 MYSQL_ 开头的环境变量是供 web 容器连接 db 容器使用， 前缀采用大写的连接别名。
 	
 	除了环境变量， Docker 还添加 host 信息到父容器的 /etc/hosts 的文件。 下面是父容器 web 的 hosts 文件    
 
 ```
-$ sudo docker run -t -i --rm --link db:db training/webapp /bin/bash
-root@aed84ee21bde:/opt/webapp# cat /etc/hosts
-172.17.0.7 aed84ee21bde
-. . .
-172.17.0.5 db
+[zjy@master docker]$ sudo docker exec -it app env
+
+sudo docker exec -it app cat /etc/hosts
+127.0.0.1       localhost
+::1     localhost ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+172.17.0.2      mysql 265ef5cff3e1
+172.17.0.3      e0b659e7b569
 ```
 
-	这里有 2 个 hosts， 第一个是 web 容器， web 容器用 id 作为他的主机名， 第二个是 db 容器的 ip 和主机 名。 可以在 web 容器中安装 ping 命令来测试跟db容器的连通。  
+	这里有 2 个 hosts， 第一个是 mysql 容器， mysql 容器用 id 作为他的主机名， 第二个是 app 容器的 ip 和主机 名。 可以在 app 容器中安装 ping 命令来测试跟db容器的连通。  
 
 ```
-root@aed84ee21bde:/opt/webapp# apt-get install -yqq inetutils-ping
+root@aed84ee21bde:/opt/webapp# apt-get install -y  inetutils-ping
 root@aed84ee21bde:/opt/webapp# ping db
 PING db (172.17.0.5): 48 data bytes
 56 bytes from 172.17.0.5: icmp_seq=0 ttl=64 time=0.267 ms
@@ -1898,7 +1963,7 @@ PING db (172.17.0.5): 48 data bytes
 
 	本章将介绍 Docker 的一些高级网络配置和选项。  
 	
-	当 Docker 启动时， 会自动在主机上创建一个 docker0 虚拟网桥， 实际上是 Linux 的一个 bridge， 可以理 解为一个软件交换机。 它会在挂载到它的网口之间进行转发。  
+	当 Docker 启动时， 会自动在主机上创建一个 docker0 虚拟网桥， 实际上是 Linux 的一个 bridge， 可以理解为一个软件交换机。 它会在挂载到它的网口之间进行转发。  
 	
 	同时， Docker 随机分配一个本地未占用的私有网段（在 RFC1918 中定义） 中的一个地址给 docker0 接 口。 比如典型的 172.17.42.1 ， 掩码为 255.255.0.0 。 此后启动的容器内的网口也会自动分配一个同一 网段（172.17.0.0/16 ） 的地址。  
 	
@@ -1916,7 +1981,7 @@ PING db (172.17.0.5): 48 data bytes
 
 	下面是一个跟 Docker 网络相关的命令列表。  
 	
-	其中有些命令选项只有在 Docker 服务启动的时候才能配置， 而且不能马上生效。   
+	其中有些命令选项只有在 Docker服务启动的时候才能配置， 而且不能马上生效。   
 
 > -b BRIDGE or --bridge=BRIDGE --指定容器挂载的网桥 
 >
@@ -1928,7 +1993,7 @@ PING db (172.17.0.5): 48 data bytes
 >
 > --ip-forward=true|false --请看下文容器之间的通信
 >
->  --iptables=true|false --禁止 Docker 添加 iptables 规则 
+>  --iptables=true|false --禁止 Docker添加 iptables 规则 
 >
 > --mtu=BYTES --容器网络中的 MTU  
 
@@ -1985,7 +2050,7 @@ tmpfs on /etc/resolv.conf type tmpfs ...
 	容器要想访问外部网络， 需要本地系统的转发支持。 在Linux 系统中， 检查转发是否打开。   
 
 ```
-$sysctl net.ipv4.ip_forward 
+$ sysctl net.ipv4.ip_forward 
 net.ipv4.ip_forward = 1  
 ```
 
@@ -2051,7 +2116,7 @@ DROP all -- 0.0.0.0/0 0.0.0.0/0
 
 #### 5.3.4.1  容器访问外部实现  
 
-	容器所有到外部网络的连接， 源地址都会被NAT成本地系统的IP地址。 这是使用 iptables 的源地址伪装 操作实现的。  
+	容器所有到外部网络的连接， 源地址都会被NAT成本地系统的IP地址。 这是使用 iptables 的源地址伪装操作实现的。  
 	
 	查看主机的 NAT 规则。   	
 
@@ -2102,7 +2167,7 @@ DNAT tcp -- 0.0.0.0/0 0.0.0.0/0 tcp dpt:80 to:172.17.0.2:80
 	
 	Docker 默认指定了 docker0 接口 的 IP 地址和子网掩码， 让主机和容器之间可以通过网桥相互通信， 它 还给出了 MTU（接口允许接收的最大传输单元） ， 通常是 1500 Bytes， 或宿主主机网络路由上支持的默认 值。 这些值都可以在服务启动的时候进行配置。  
 
-> --bip=CIDR -- IP 地址加掩码格式， 例如 192.168.1.5/24 
+> --bip=CIDR -- IP地址加掩码格式， 例如 192.168.1.5/24 
 >
 > --mtu=BYTES -- 覆盖默认的 Docker mtu 配置  
 
@@ -2625,6 +2690,13 @@ vethe6e5
 
 
 
+
+
+
+
+
+
+
 # 9  Dockerfile  
 
 	使用 Dockerfile 可以允许用户创建自定义的镜像。  
@@ -2701,9 +2773,21 @@ RUN echo moo > oink
 
 ### 9.2.1  FROM  
 
-	格式为 FROM <image> 或 FROM <image>:<tag> 。 
+	功能为指定基础镜像，并且必须是第一条指令。
 	
-	第一条指令必须为 FROM 指令。 并且， 如果在同一个Dockerfile中创建多个镜像时， 可以使用多个 FROM 指令（每个镜像一次） 。  
+	如果不以任何镜像为基础，那么写法为：FROM scratch。
+	
+	同时意味着接下来所写的指令将作为镜像的第一层开始
+	
+	语法：
+	
+	FROM <image>
+	FROM <image>:<tag>
+	FROM <image>:<digest> 
+	三种写法，其中<tag>和<digest> 是可选项，如果没有选择，那么默认值为latest
+
+
+​	  
 
 ### 9.2.3  MAINTAINER 
 
@@ -2711,11 +2795,40 @@ RUN echo moo > oink
 
 ### 9.2.4  RUN   
 
-	格式为 RUN <command> 或 RUN ["executable", "param1", "param2"] 。 
+	功能为运行指定的命令
 	
-	前者将在 shell 终端中运行命令， 即 /bin/sh -c ；后者则使用 exec 执行。 指定使用其它终端可以通过 第二种方式实现， 例如 RUN ["/bin/bash", "-c", "echo hello"] 。 
+	RUN命令有两种格式
 	
-	每条 RUN 指令将在当前镜像基础上执行指定命令， 并提交为新的镜像。 当命令较长时可以使用 \ 来换 行。  
+	1. RUN <command>
+	2. RUN ["executable", "param1", "param2"]
+	第一种后边直接跟shell命令
+	
+	在linux操作系统上默认 /bin/sh -c
+	
+	在windows操作系统上默认 cmd /S /C
+	
+	第二种是类似于函数调用。
+	
+	可将executable理解成为可执行文件，后面就是两个参数。
+
+
+​	
+​	两种写法比对：
+​	
+​	RUN /bin/bash -c 'source $HOME/.bashrc; echo $HOME
+​	RUN ["/bin/bash", "-c", "echo hello"]
+​	注意：多行命令不要写多个RUN，原因是Dockerfile中每一个指令都会建立一层.
+​	
+​	 多少个RUN就构建了多少层镜像，会造成镜像的臃肿、多层，不仅仅增加了构件部署的时间，还容易出错。
+​	
+	RUN书写时的换行符是\
+	
+	如：
+	RUN yum update -y && \
+		mkdir -p /usr/java && \
+		gunzip server-jre-8u172-linux-x64.tar.gz && \
+		rm server-jre-8u172-linux-x64.tar && \
+	    yum clean all
 
 ### 9.2.5  CMD  
 
@@ -2723,23 +2836,57 @@ RUN echo moo > oink
 
 > 1. CMD ["executable","param1","param2"] 使用 exec 执行， 推荐方式； 
 > 2. CMD command param1 param2 在 /bin/sh 中执行， 提供给需要交互的应用；
-> 3.  CMD ["param1","param2"] 提供给 ENTRYPOINT 的默认参数；  
+> 3. CMD ["param1","param2"] 提供给 ENTRYPOINT 的默认参数；  
+
+
+
+举例说明两种写法：
+
+- CMD [ "sh", "-c", "echo $HOME"] 
+- CMD [ "echo", "$HOME" ]
+
+补充细节：这里边包括参数的一定要用双引号，就是",不能是单引号。千万不能写成单引号。
+
+原因是参数传递后，docker解析的是一个JSON array
+
+
 
 	指定启动容器时执行的命令， 每个 Dockerfile 只能有一条 CMD 命令。 
 	
 	如果指定了多条命令， 只有最后一条 会被执行。 如果用户启动容器时候指定了运行的命令， 则会覆盖掉 CMD 指定的命令。  
 
+**RUN & CMD**
+
+​	不要把RUN和CMD搞混了。
+
+​	RUN是构件容器时就运行的命令以及提交运行结果
+
+​	CMD是容器启动时执行的命令，在构件时并不运行，构建时仅仅指定了这个命令到底是个什么样子
+
+
+
 ### 9.2.6  EXPOSE  
 
 	格式为 EXPOSE <port> [<port>...] 。 
 	
-	告诉 Docker 服务端容器暴露的端口号， 供互联系统使用。 在启动容器时需要通过 -P， Docker 主机会自动 分配一个端口转发到指定的端口。  
+	功能为暴漏容器运行时的监听端口给外部
+	
+	但是EXPOSE并不会使容器访问主机的端口
+	
+	如果想使得容器与主机的端口有映射关系，必须在容器启动的时候加上 -P参数 
 
 ### 9.2.7  ENV  
 
-	格式为 ENV <key> <value> 。 指定一个环境变量， 会被后续 RUN 指令使用， 并在容器运行时保持。 
+	功能为设置环境变量， 会被后续 RUN 指令使用， 并在容器运行时保持。
 	
-	例如  
+	语法有两种
+	
+	1. ENV <key> <value>
+	2. ENV <key>=<value> ...
+	两者的区别就是第一种是一次设置一个，第二种是一次设置多个 
+
+
+​	 
 
 ```
 ENV PG_MAJOR 9.3
@@ -2750,9 +2897,28 @@ ENV PATH /usr/local/postgres-$PG_MAJOR/bin:$PATH
 
 ### 9.2.8  ADD  
 
-	格式为 ADD <src> <dest> 。 
+	一个复制命令，把文件复制到镜像中。
 	
-	该命令将复制指定的 <src> 到容器中的 <dest> 。 其中 <src> 可以是Dockerfile所在目录的一个相对路 径；也可以是一个 URL；还可以是一个 tar 文件（自动解压为目录） 。  
+	如果把虚拟机与容器想象成两台linux服务器的话，那么这个命令就类似于scp，只是scp需要加用户名和密码的权限验证，而ADD不用。
+	
+	语法如下：
+	
+	1. ADD <src>... <dest>
+	2. ADD ["<src>",... "<dest>"]
+	
+	<dest>路径的填写可以是容器内的绝对路径，也可以是相对于工作目录的相对路径
+	<src>可以是一个本地文件或者是一个本地压缩文件，还可以是一个url
+	
+	如以下写法都是可以的：
+	
+	ADD test relativeDir/ 
+	ADD test /relativeDir
+	ADD http://example.com/foobar /
+	尽量不要把<scr>写成一个文件夹，如果<src>是一个文件夹了，复制整个目录的内容,包括文件系统元数据
+
+
+​	
+​	如果把<src>写成一个url，那么ADD就类似于wget命令
 
 ### 9.2.9  COPY  
 
@@ -2762,38 +2928,121 @@ ENV PATH /usr/local/postgres-$PG_MAJOR/bin:$PATH
 	
 	当使用本地目录为源目录时， 推荐使用 COPY 。  
 
-### 9.2.10  ENTRYPOINT  
 
-	两种格式： 
-
-> - ENTRYPOINT ["executable", "param1", "param2"] 
-> - ENTRYPOINT command param1 param2 （shell中执行） 。 
-
-	配置容器启动后执行的命令， 并且不可被 docker run 提供的参数覆盖。 
+​	
+​	Add vs COPY
+​	
+​	1、ADD指令可以让你使用URL作为<src>参数。当遇到URL时候，可以通过URL下载文件并且复制到<dest>
+​		ADD http://foo.com/bar.go /tmp/main.go
+​	2、ADD的另外一个特性是有能力自动解压文件。如果<src>参数是一个可识别的压缩格式（tar, gzip, bzip2, etc）的本地文件（所以实现不了同时下载并解压），就会被解压到指定容器文件系统的路径<dest>
+​	
+​		ADD /foo.tar.gz /tmp/
+​	上述指令会使foo.tar.gz压缩文件解压到容器的/tmp目录。
+​	
+	********
+	URL下载和解压特性不能一起使用。任何压缩文件通过URL拷贝，都不会自动解压。
+	********
 	
-	每个 Dockerfile 中只能有一个 ENTRYPOINT ， 当指定多个时， 只有最后一个起效。  
+	结论：
+	1、Docker 团队的建议是在大多数情况下使用COPY。
+	2、使用COPY（除非你明确你需要ADD）
+
+### 9.2.10  ENTRYPOINT   
+
+	功能是启动时的默认命令
+	
+	语法如下：
+	
+	1. ENTRYPOINT ["executable", "param1", "param2"]
+	2. ENTRYPOINT command param1 param2
+	 
+	如果从上到下看到这里的话，那么你应该对这两种语法很熟悉啦。
+	
+	第二种就是写shell
+	
+	第一种就是可执行文件加参数
+
+
+​	
+​	与CMD比较说明（这俩命令太像了，而且还可以配合使用）：
+​	
+​	1. 相同点：
+​	
+​	只能写一条，如果写了多条，那么只有最后一条生效
+​	
+	容器启动时才运行，运行时机相同
+	
+	2. 不同点：
+	
+	 ENTRYPOINT不会被运行的command覆盖，而CMD则会被覆盖
+	
+	 如果我们在Dockerfile种同时写了ENTRYPOINT和CMD，并且CMD指令不是一个完整的可执行命令，那么CMD指定的内容将会作为ENTRYPOINT的参数
+	 
+	 如下：
+	
+	FROM ubuntu
+	ENTRYPOINT ["top", "-b"]
+	CMD ["-c"]
+
+
+​	
+​	如果我们在Dockerfile种同时写了ENTRYPOINT和CMD，并且CMD是一个完整的指令，那么它们两个会互相覆盖，谁在最后谁生效
+​	
+​	如下：
+​	
+​	FROM ubuntu
+​	ENTRYPOINT ["top", "-b"]
+​	CMD ls -al
+​	那么将执行ls -al ,top -b不会执行。
+​	
+	Docker官方使用一张表格来展示了ENTRYPOINT 和CMD不同组合的执行情况
+
+![entrypoint&cmd&run](imgs/docker/entrypoint&cmd&run.jpg)
+
+
 
 ### 9.2.11  VOLUME  
 
-	格式为 VOLUME ["/data"] 。 
+	可实现挂载功能，可以将本地文件夹或者其他容器中的文件夹挂在到这个容器种
 	
-	创建一个可以从本地主机或其他容器挂载的挂载点， 一般用来存放数据库和需要保持的数据等。  
+	语法为：
+	VOLUME ["/data"]
+	
+	说明：
+	
+	   ["/data"]可以是一个JsonArray ，也可以是多个值。所以如下几种写法都是正确的
+	
+	VOLUME ["/var/log/"]
+	VOLUME /var/log
+	VOLUME /var/log /var/db
+	一般的使用场景为需要持久化存储数据时
+	
+	容器使用的是AUFS，这种文件系统不能持久化数据，当容器关闭后，所有的更改都会丢失。
+	
+	所以当数据需要持久化时用这个命令。
 
 ### 9.2.12  USER  
 
-	格式为 USER daemon 。 
+
+	设置启动容器的用户，可以是用户名或UID，所以，只有下面的两种写法是正确的
 	
-	指定运行容器时的用户名或 UID， 后续的 RUN 也会使用指定用户。
+	USER daemo
+	USER UID
+	注意：如果设置了容器以daemon用户去运行，那么RUN, CMD 和 ENTRYPOINT 都会以这个用户去运行
 	
 	当服务不需要管理员权限时， 可以通过该命令指定运行用户。 并且可以在之前创建所需要的用户， 例 如： RUN groupadd -r postgres && useradd -r -g postgres postgres 。 要临时获取管理员权限可以 使用 gosu ， 而不推荐 sudo 。    
 
 ### 9.2.13  WORKDIR  
 
-	格式为 WORKDIR /path/to/workdir 。 
+	语法：
 	
-	为后续的 RUN 、 CMD 、 ENTRYPOINT 指令配置工作目录。 
+	WORKDIR /path/to/workdir
 	
-	可以使用多个 WORKDIR 指令， 后续命令如果参数是相对路径， 则会基于之前命令指定的路径。 例如  
+	设置工作目录，对RUN,CMD,ENTRYPOINT,COPY,ADD生效。如果不存在则会创建，也可以设置多次。 
+
+
+​	
+​	可以使用多个 WORKDIR 指令， 后续命令如果参数是相对路径， 则会基于之前命令指定的路径。 例如  
 
 ```
 WORKDIR /a
@@ -2834,7 +3083,9 @@ RUN /usr/local/bin/python-build --dir /app/src
 
 	编写完成 Dockerfile 之后， 可以通过 docker build 命令来创建镜像。 
 	
-	基本的格式为 docker build [选项] 路径 ， 该命令将读取指定路径下（包括子目录） 的 Dockerfile， 并将 该路径下所有内容发送给 Docker 服务端， 由服务端来创建镜像。 因此一般建议放置 Dockerfile 的目录为空 目录。 也可以通过 .dockerignore 文件（每一行添加一条匹配模式） 来让 Docker 忽略路径下的目录和文 件。 
+	基本的格式为 
+		docker build [选项] 路径 ， 
+	该命令将读取指定路径下（包括子目录） 的 Dockerfile， 并将 该路径下所有内容发送给 Docker 服务端， 由服务端来创建镜像。 因此一般建议放置 Dockerfile 的目录为空目录。 也可以通过 .dockerignore 文件（每一行添加一条匹配模式） 来让 Docker 忽略路径下的目录和文件。 
 	
 	要指定镜像的标签信息， 可以通过 -t 选项， 例如  
 
@@ -2848,13 +3099,13 @@ $ sudo docker build -t myrepo/myapp /tmp/test1/
 
 # 10  底层实现   
 
-	Docker 底层的核心技术包括 Linux 上的名字空间（Namespaces） 、 控制组（Control groups） 、 Union 文 件系统（Union file systems） 和容器格式（Container format） 。  
+	Docker 底层的核心技术包括 Linux 上的命名空间（Namespaces） 、 控制组（Control groups） 、 Union 文件系统（Union file systems）和容器格式（Container format） 。  
 	
-	我们知道， 传统的虚拟机通过在宿主主机中运行 hypervisor 来模拟一整套完整的硬件环境提供给虚拟机的 操作系统。 虚拟机系统看到的环境是可限制的， 也是彼此隔离的。 这种直接的做法实现了对资源最完整的 封装， 但很多时候往往意味着系统资源的浪费。 例如， 以宿主机和虚拟机系统都为 Linux 系统为例， 虚拟 机中运行的应用其实可以利用宿主机系统中的运行环境。  
+	我们知道， 传统的虚拟机通过在宿主主机中运行 hypervisor 来模拟一整套完整的硬件环境提供给虚拟机的 操作系统。 虚拟机系统看到的环境是可限制的，也是彼此隔离的。 这种直接的做法实现了对资源最完整的封装， 但很多时候往往意味着系统资源的浪费。例如，以宿主机和虚拟机系统都为 Linux 系统为例，虚拟机中运行的应用其实可以利用宿主机系统中的运行环境。  
 	
-	我们知道， 在操作系统中， 包括内核、 文件系统、 网络、 PID、 UID、 IPC、 内存、 硬盘、 CPU 等等， 所有 的资源都是应用进程直接共享的。 要想实现虚拟化， 除了要实现对内存、 CPU、 网络IO、 硬盘IO、 存储空 间等的限制外， 还要实现文件系统、 网络、 PID、 UID、 IPC等等的相互隔离。 前者相对容易实现一些， 后 者则需要宿主机系统的深入支持。  
+	我们知道，在操作系统中，包括内核、文件系统、网络、PID、UID、IPC、内存、硬盘、CPU 等等，所有的资源都是应用进程直接共享的。要想实现虚拟化，除了要实现对内存、CPU、网络IO、硬盘IO、存储空间等的限制外， 还要实现文件系统、网络、PID、UID、IPC等等的相互隔离。前者相对容易实现一些，后者则需要宿主机系统的深入支持。  
 	
-	随着 Linux 系统对于名字空间功能的完善实现， 程序员已经可以实现上面的所有需求， 让某些进程在彼此 隔离的名字空间中运行。 大家虽然都共用一个内核和某些运行时环境（例如一些系统命令和系统库） ， 但 是彼此却看不到， 都以为系统中只有自己的存在。 这种机制就是容器（Container） ， 利用名字空间来做权 限的隔离控制， 利用 cgroups 来做资源分配。  
+	随着 Linux 系统对于名字空间功能的完善实现， 程序员已经可以实现上面的所有需求， 让某些进程在彼此 隔离的名字空间中运行。 大家虽然都共用一个内核和某些运行时环境（例如一些系统命令和系统库） ，但是彼此却看不到， 都以为系统中只有自己的存在。这种机制就是容器（Container），利用名字空间来做权限的隔离控制，利用 cgroups 来做资源分配。  
 
 
 
@@ -2914,7 +3165,7 @@ $ sudo docker build -t myrepo/myapp /tmp/test1/
 	
 	Docker 中使用的 AUFS（AnotherUnionFS） 就是一种联合文件系统。 AUFS 支持为每一个成员目录（类 似 Git 的分支） 设定只读（readonly） 、 读写（readwrite） 和写出（whiteout-able） 权限, 同时 AUFS 里有 一个类似分层的概念, 对只读权限的分支可以逻辑上进行增量地修改(不影响只读部分的)。  
 	
-	Docker 目前支持的联合文件系统种类包括 AUFS, btrfs, vfs 和 DeviceMapper。  
+	Docker 目前支持的联合文件系统种类包括 AUFS, btrfs, vfs 和 DeviceMapper,Overlay,Overlay2。  
 
 ## 10.4 容器格式  
 
