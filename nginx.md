@@ -519,6 +519,14 @@ location ~* /js/.*/\.js
 
 
 
+### 2.5.1 Named Location
+
+​	location 的语法中，可以有“= ”，“^~ ”，“~ ”和“~* ”前缀，或者干脆没有任何前缀，还有“@ ”前缀。
+
+​	这里介绍下“＠”的用途，“@ ”是用来定义“Named Location ”的（你可以理解为独立于“普通location （location using literal strings ）”和“正则location （location using regular expressions ）”之外的第三种类型），这种“Named Location ”不是用来处理普通的HTTP 请求的，它是专门用来处理“内部重定向（internally redirected ）”请求的。注意：这里说的“内部重定向（internally redirected ）”或许说成“forward ”会好点，以为内internally redirected 是不需要跟浏览器交互的，纯粹是服务端的一个转发行为
+
+
+
 # 3 nginx原理分析
 
 	传统基于进程或线程的模型使用单独的进程或线程处理并发连接，因而会阻塞于网络或I/O操作。根据不同的应用，就内存和CPU而言，这是非常低效的。派生进程或线程需要准备新的运行环境，包括在内存上分配堆和栈、生成一个新的运行上下文。创建这些东西还需要额外的CPU时间，而且过度的上下文切换引起的线程抖动最终会导致性能低下。所有这些复杂性在如Apache web服务器的老架构上一览无遗。在提供丰富的通用应用功能和优化服务器资源使用之间需要做一个权衡。
@@ -1573,35 +1581,17 @@ Context: upstream
 
 其它指令：
 
-```
-
-```
-
 	该指令可以配置一个连接发送的请求数，其默认值为1，表示Tengine完成1次请求后即关闭连接。
-
-```
-
-```
 
 	该指令可以配置http健康检查包发送的请求内容。为了减少传输数据量，推荐采用"HEAD"方法。
 	
 	当采用长连接进行健康检查时，需在该指令中添加keep-alive请求头，如："HEAD / HTTP/1.1\r\nConnection: keep-alive\r\n\r\n"。 同时，在采用"GET"方法的情况下，请求uri的size不宜过大，确保可以在1个interval内传输完成，否则会被健康检查模块视为后端服务器或网络异常。
 
-```
-
-```
-
 	该指令指定HTTP回复的成功状态，默认认为2XX和3XX的状态是健康的。
-
-```
-
-```
 
 	所有的后端服务器健康检查状态都存于共享内存中，该指令可以设置共享内存的大小。默认是1M，如果你有1千台以上的服务器并在配置的时候出现了错误，就可能需要扩大该内存的大小。
 
-```
 
-```
 
 	显示服务器的健康状态页面。该指令需要在http块中配置。
 
@@ -3005,4 +2995,81 @@ sudo systemctl reload nginx
 
 ![master_alex_index](/imgs/nginx/master_alex_index.jpg)
 
-# 10 常见问题分析
+# 10 njs介绍
+
+官网介绍地址：
+
+```
+http://nginx.org/en/docs/njs/
+```
+
+## 10.1 安装
+
+有两种方式安装：
+
+> 1.通过包管理器，比如yum install nginx-module-njs
+>
+> 2.源码编译安装
+
+推荐`源码编译安装` ，包管理器安装的无法与升级后的nginx版本相匹配
+
+### 10.1.1 源码安装
+
+njs的源码地址在
+
+```
+http://hg.nginx.org/njs
+```
+
+安装需要先下载源码，
+
+```
+
+```
+
+或者直接下载压缩包
+
+![njs_source_address](/imgs/nginx/njs_source_address.jpg)
+
+可以通过静态模块或者动态模块的方式编译安装
+
+```
+./configure --add-module=path-to-njs/nginx
+
+./configure --add-dynamic-module=path-to-njs/nginx
+```
+
+
+
+==推荐使用静态方式==，因为版本对应关系，每次升级都得级联升级，动态模块意义不大。
+
+## 10.2  Hello World
+
+新建/etc/nginx/njs/hello_world.js
+
+```
+function hello(r) {
+    r.return(200, "Hello world!");
+}
+```
+
+如果是动态模块，需要在nginx.conf中开启ngx_http_js_module.so (注意开启位置)
+
+```
+
+```
+
+重新加载配置文件，验证
+
+```
+
+```
+
+
+
+10.3 其他示例
+
+```
+
+```
+
