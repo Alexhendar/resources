@@ -1,0 +1,101 @@
+1、准备阶段
+
+  1.1 升级系统内核
+	设置elrepo，linux内核更新yum源
+	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+	rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+		
+	查看最新的操作系统内核版本，这里版本为5.0.4-1.el7.elrepo
+		
+	yum --disablerepo="*" --enablerepo="elrepo-kernel" list available
+	
+  1.2  设置hostname
+	hostnamectl set-hostname m1
+	hostnamectl set-hostname m2
+	hostnamectl set-hostname m3
+	hostnamectl set-hostname n1
+	hostnamectl set-hostname n2
+  1.3  设置防火墙
+    1.3.1  Master设置防火墙
+	(验证systemctl status firewalld)
+	执行sh firewalld_preset_master.sh即可
+		# 重启防火墙
+		systemctl enable firewalld
+		systemctl restart firewalld
+		# systemctl status firewalld
+
+		#master节点
+		firewall-cmd --zone=public --add-port=16443/tcp --permanent
+		firewall-cmd --zone=public --add-port=6443/tcp --permanent
+		firewall-cmd --zone=public --add-port=4001/tcp --permanent
+		firewall-cmd --zone=public --add-port=2379-2380/tcp --permanent
+		firewall-cmd --zone=public --add-port=10250/tcp --permanent
+		firewall-cmd --zone=public --add-port=10251/tcp --permanent
+		firewall-cmd --zone=public --add-port=10252/tcp --permanent
+		firewall-cmd --zone=public --add-port=30000-32767/tcp --permanent
+
+		firewall-cmd --reload
+		# 查看端口开放状态
+		firewall-cmd --list-all --zone=public
+	1.3.2 Node节点设置防火墙
+	执行sh firewalld_preset_node.sh即可
+		# 重启防火墙
+		systemctl enable firewalld
+		systemctl restart firewalld
+		# systemctl status firewalld
+
+		#master节点
+		firewall-cmd --zone=public --add-port=10250/tcp --permanent
+		firewall-cmd --zone=public --add-port=30000-32767/tcp --permanent
+
+		firewall-cmd --reload
+		# 查看端口开放状态
+		firewall-cmd --list-all --zone=public
+	1.4 设置hosts
+		scp kubeadm/hosts m2:/etc/hosts
+		scp kubeadm/hosts m3:/etc/hosts
+		scp kubeadm/hosts n1:/etc/hosts
+		scp kubeadm/hosts n2:/etc/hosts
+	1.5 设置公钥免密登录
+2  系统参数设置
+  2.1 禁用SELinux 
+	setenforce 0
+	sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+  2.2 网络设置
+	vim  /etc/sysctl.d/k8s.conf
+	net.bridge.bridge-nf-call-ip6tables = 1
+	net.bridge.bridge-nf-call-iptables = 1
+	sysctl --system	
+	
+	echo "1">/proc/sys/net/bridge/bridge-nf-call-iptables
+	echo "1">/proc/sys/net/ipv4/ip_forward
+  2.3 禁用swap
+	swapoff -a
+	sed -i 's/.swap./#&/' /etc/fstab
+	free -h
+	#如果要永久禁止swap挂载，可以修改/etc/fstab，将与swap有关的配置注释，重启系统即可
+	sed -i 's/.swap./#&/' /etc/fstab
+
+3 安装Kubeadm
+  3.1 设置yum源(cp -r kubeadm/yum/* /etc/yum.repos.d/)
+	参考docker-ce.repo  kubernetes.repo
+  3.2 安装kubeadm
+	yum install -y kubelet-1.14.0-0.x86_64 kubeadm-1.14.0-0.x86_64  kubectl-1.14.0-0.x86_64 kubernetes-cni --disableexcludes=kubernetes
+	
+	systemctl enable kubelet && systemctl start kubelet
+	systemctl daemon-reload
+	systemctl restart kubelet
+  3.3 安装docker
+    yum install -y 3:docker-ce-18.09.5-3.el7.x86_64
+	
+4 初始化Master
+  4.1  kubeadm init --config kubeadm/cluster/kubeadm-config.yaml --experimental-upload-certs
+
+  4.1  Init
+	kubeadm init --kubernetes-version=1.14.0 --pod-network-cidr=10.244.0.0/16  --apiserver-advertise-address=172.20.20.161 --experimental-upload-certs
+   4.2 安装Flannel
+   kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+  4.3 其他master加入m1
+    kubeadm join 172.20.20.161:6443 --token 1lclfg.1w2kpji7dcmmbhu1  --discovery-token-ca-cert-hash sha256:c15599cc4acc5291496f04d3726422088e8823e45fb1b01ad7c96c206e64cab4  --experimental-control-plane --certificate-key  f4f369f3a8a1827fd1891e36cd79d7876f366842d08d1ed11c81b6016e5a8376
+	

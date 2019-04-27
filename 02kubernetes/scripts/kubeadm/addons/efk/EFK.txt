@@ -1,0 +1,57 @@
+﻿https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/fluentd-elasticsearch
+https://www.qikqiak.com/post/install-efk-stack-on-k8s/
+1.下载镜像
+docker pull kibana:6.4.3
+docker push elasticsearch:6.4.3
+docker pull fluent/fluentd-kubernetes-daemonset:v0.12-debian-elasticsearch
+
+docker tag kibana:6.4.3 harbor.nantong.com:9001/library/kibana:6.4.3
+docker push harbor.nantong.com:9001/library/kibana:6.4.3
+
+docker tag elasticsearch:6.4.3 harbor.nantong.com:9001/library/elasticsearch:6.4.3
+docker push harbor.nantong.com:9001/library/elasticsearch:6.4.3
+
+docker tag fluent/fluentd-kubernetes-daemonset:v0.12-debian-elasticsearch harbor.nantong.com:9001/library/fluentd-kubernetes-daemonset:v0.12-debian-elasticsearch
+docker push harbor.nantong.com:9001/library/fluentd-kubernetes-daemonset:v0.12-debian-elasticsearch
+2.创建namecpace
+kubectl create -f kube-logging.yaml
+3.创建service
+kubectl create -f elasticsearch_svc.yaml
+4.创建StatefulSet
+  4.1 搭建nfs服务器
+      vim /etc/exports
+			/work/efk_nfs_data 172.20.20.0/24(rw,no_root_squash,no_all_squash,sync)
+			mkdir /work/efk_nfs_data
+			mkdir /work/efk_nfs_data/0
+			mkdir /work/efk_nfs_data/1
+			mkdir /work/efk_nfs_data/2
+			chmod -R 755 /work/efk_nfs_data  共享文件夹
+	    exportfs -r
+			systemctl start rpcbind
+			systemctl restart nfs
+  4.2 为ES集群存储搭建动态PV
+  		1.创建Provisioner自动配置程序
+  			通过已创建的NFS服务器来自动创建持久卷
+  			自动创建的PV以${namespace}-${pvcName}-${pvName}这样的命名格式创建在 NFS 服务器上的共享数据目录中
+  			而当这个 PV 被回收后会以archieved-${namespace}-${pvcName}-${pvName}这样的命名格式存在 NFS 服务器上。
+  		
+  		创建nfs-client.yaml 里面包含Provisioner和NFS的绑定
+  		创建nfs-client-sa.yaml 创建Provisioner具有的角色和权限，并进行绑定
+  		创建nfs-client-class.yaml 创建StorageClass 动态存储应用类
+  		注意保持nfs-client.yaml文件中provisioner的值（lihui.pri/nfs）一致。
+  		kubectl create -f nfs-client.yaml
+			kubectl create -f nfs-client-sa.yaml
+			kubectl create -f nfs-client-class.yaml
+  		
+  4.3 创建StatefulSet
+			kubectl create -f elasticsearch_statefulset.yaml
+5.创建Kibana
+			kubectl create -f kibana.yaml
+			kubectl rollout status deployment/kibana --namespace=kube-logging  #检查
+			kubectl get pods --namespace=kube-logging
+6.创建Fluentd DaemonSet
+      kubectl create -f fluentd.yaml
+			kubectl get ds --namespace=kube-logging
+7.浏览
+      kubectl port-forward kibana-5d4b79fd45-d8qz2 5601:5601 --namespace=kube-logging
+      

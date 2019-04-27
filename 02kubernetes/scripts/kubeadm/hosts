@@ -1,0 +1,9 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+172.20.20.165 gitlab.nantong.com harbor.nantong.com
+
+172.20.20.161 m1
+172.20.20.162 m2
+172.20.20.163 m3
+172.20.20.164 n1
+172.20.20.165 n2

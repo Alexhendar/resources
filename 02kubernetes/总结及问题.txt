@@ -1,0 +1,81 @@
+1、Kubeadm 的配置文件位置
+
+2、配置 Network plugin
+	cat /etc/cni/net.d/10-flannel.conflist
+	{
+	  "name": "cbr0",
+	  "plugins": [
+		{
+		  "type": "flannel",
+		  "delegate": {
+			"hairpinMode": true,
+			"isDefaultGateway": true
+		  }
+		},
+		{
+		  "type": "portmap",
+		  "capabilities": {
+			"portMappings": true
+		  }
+		}
+	  ]
+	}
+	
+3、什么是OpenAPI 3.0
+
+4、X509认证
+
+5、Downward API
+
+6、检查Kubernetes 集群状态
+	https://github.com/heptio/sonobuoy
+	
+7、Kubectl plugin 管理工具
+	https://github.com/kubernetes-sigs/krew
+	
+8、集群桌面管理工具
+	https://kubernetic.com/
+9、探针类型有三种
+	ExecAction、TCPSocketAction、HTTPGetAction
+	存活探针livenessProbe、就绪探针readinessProbe、lifecycle
+	端口验证可以用端口号或者【端口名称】
+10、Pod状态
+	CrashLoopBackOff 的含义。其他状态Error、Pending、Running、ImagePullBackOff、Terminating、Unknown
+11、ClusterRoles
+	默认集成角色：https://kubernetes.io/docs/reference/access-authn-authz/rbac/#default-roles-and-role-bindings
+	kubectl get clusterroles -n kube-system
+	准入控制：不同于授权和认证只关心请求的用户和操作，准入控制还处理请求的内容，并且仅对创建、更新、删除或连接（如代理）等有效，而对读操作无效
+12、Kubernetes网络插件
+	Kubenet插件(基于CNI bridge)、CNI
+	Flannel 基于 TUN/TAP
+	L2(VLAN)、L3(BGP)、Overlay(VXLan)
+	VRouter？
+	CNI driver与CNI插件的区别
+	Kubernetes Pod 中的其他容器都是Pod所属pause容器的网络，创建过程为：
+		1. kubelet 先创建pause容器生成network namespace
+		2. 调用网络CNI driver
+		3. CNI driver 根据配置调用具体的cni 插件
+		4. cni 插件给pause 容器配置网络
+		5. pod 中其他的容器都使用 pause 容器的网络
+13、CRI  容器运行时
+
+14、Weave Scope	可视化容器监控和排错工具
+
+15、启动mysql.service.yaml
+	Service为LoadBalancer时，kubectl get svc获得mysql服务一直是pending状态
+	https://stackoverflow.com/questions/44110876/kubernetes-service-external-ip-pending
+	将Service的type改为NodePort即可
+16、PSP(Pod Security Policy)
+17、Security Context
+
+18、为什么要用4.18(以上版本内核
+	https://github.com/Lentil1016/kubeadm-ha/issues/19
+
+19、私有云
+	Rancher、OpenShift/tectonic
+
+	
+	
+	
+
+

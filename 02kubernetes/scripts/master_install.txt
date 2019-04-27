@@ -1,0 +1,184 @@
+https://kubernetes.io/zh/docs/setup/independent/create-cluster-kubeadm/
+https://kubernetes.io/docs/concepts/cluster-administration/addons/
+https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/#pod-network
+
+
+http://www.cnblogs.com/kazihuo/p/10184286.html
+https://blog.csdn.net/wangyuxuan_java/article/details/81835867
+https://blog.myzony.com/centos-7-4-an-zhuang-k8s-v1-11-0-ji-qun-suo-yu-dao-de-wen-ti/
+
+https://yq.aliyun.com/articles/657726
+https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG-1.13.md#external-dependencies
+host设置	https://www.jianshu.com/p/f9a54e553ce4
+
+k8s 高可用参考 https://github.com/cookeem/kubeadm-ha
+	https://www.kubernetes.org.cn/5213.html			https://github.com/Lentil1016/kubeadm-ha
+	
+https://github.com/feiskyer/kubernetes-handbook
+https://www.qikqiak.com/post/kubernetes-monitor-prometheus-grafana/
+阿里镜像库查询
+https://cr.console.aliyun.com/cn-hangzhou/instances/images
+0、准备阶段
+
+  0) 升级系统内核
+	设置elrepo，linux内核更新yum源
+	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+	rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+	
+	查看最新的操作系统内核版本，这里版本为5.0.4-1.el7.elrepo
+	
+	yum --disablerepo="*" --enablerepo="elrepo-kernel" list available
+	
+	
+
+  1)设置hostname
+	hostnamectl set-hostname k8s-master
+	hostnamectl set-hostname k8s-node01
+	hostnamectl set-hostname k8s-node02
+  2) 关闭防火墙
+	systemctl stop firewalld
+	systemctl disable firewalld
+  3)
+    设置公钥免密登录
+	ssh-keygen
+	
+	ssh-copy-id root@m2
+	ssh-copy-id root@m3
+	ssh-copy-id root@n1
+	ssh-copy-id root@n2
+	
+  4) 设置/etc/hosts，复制到其他机器
+
+
+1、设置yum源
+
+vim /etc/yum.repos.d/kubernetes.repo
+
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg
+       https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+	
+2、禁用SELinux 
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+3、网络设置
+vim  /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+
+sysctl --system	
+
+swapoff -a
+sed -i 's/.swap./#&/' /etc/fstab
+free -h
+#如果要永久禁止swap挂载，可以修改/etc/fstab，将与swap有关的配置注释，重启系统即可
+sed -i 's/.swap./#&/' /etc/fstab
+
+echo "1">/proc/sys/net/bridge/bridge-nf-call-iptables
+echo "1">/proc/sys/net/ipv4/ip_forward
+
+3、安装
+yum install -y kubelet kubeadm docker kubectl kubernetes-cni --disableexcludes=kubernetes
+
+yum install -y kubelet-1.14.0-0.x86_64 kubeadm-1.14.0-0.x86_64  kubectl-1.14.0-0.x86_64 kubernetes-cni --disableexcludes=kubernetes
+
+docker-ce-18.06.3.ce-3.el7.x86_64
+
+systemctl enable kubelet && systemctl start kubelet
+systemctl daemon-reload
+systemctl restart kubelet
+
+systemctl enable docker && systemctl start docker
+
+下载docker镜像，执行ins_gcr_img.sh
+4、安装网络插件
+vim /etc/sysconfig/kubelet
+	KUBELET_EXTRA_ARGS=--fail-swap-on=false
+
+
+#初始化
+kubeadm init --kubernetes-version=1.14.0 --pod-network-cidr=10.244.0.0/16  --apiserver-advertise-address=172.20.20.161 --experimental-upload-certs
+kubeadm init --kubernetes-version=1.14.0 --pod-network-cidr=10.244.0.0/16  --apiserver-advertise-address=192.168.1.108 --experimental-upload-certs
+出现系统报错时添加参数--ignore-preflight-errors=SystemVerification
+# kubeadm config images list
+
+执行
+cp /etc/kubernetes/admin.conf .kube/config
+不然每次执行命令都需要添加--kubeconfig参数
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf config view
+	查看资源
+	kubectl --kubeconfig /etc/kubernetes/kubelet.conf get pods
+
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+kubectl get nodes
+	Ready状态的Master节点
+
+kubeadm join 172.20.20.164:6443 --token ntcs17.6ufo0oux7lt9mrvk  --discovery-token-ca-cert-hash sha256:d842fe8ff6c98ddc8ec08263191ad740136e22d0618e099c35a30fe6b8ab8082
+
+5、安装dashboard
+	(下载镜像，并打tag，顺序都可以)
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+
+	验证
+		1、kubectl get pods -n kube-system
+			kubernetes-dashboard-57df4db6b-thfjs         1/1     Running   0          8m23s
+		Running状态即为正确
+		2、kubectl get svc -n kube-system
+		NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
+		kube-dns               ClusterIP   10.96.0.10     <none>        53/UDP,53/TCP   29h
+		kubernetes-dashboard   ClusterIP   10.99.231.86   <none>        443/TCP         7m57s
+	kubectl patch svc kubernetes-dashboard -p '{"spec":{"type":"NodePort"}}' -n kube-system  #以打补丁方式修改dasboard的访问方式
+	
+	kubectl get svc -n kube-system
+		NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
+		kube-dns               ClusterIP   10.96.0.10     <none>        53/UDP,53/TCP   29h
+		kubernetes-dashboard   NodePort    10.99.231.86   <none>        443:32613/TCP   11m
+	
+	以https://10.30.13.112:32613/#!/login，在火狐中登录，chrome浏览器访问不了没有认证的https
+	
+	cd /etc/kubernetes/pki/
+	kubectl config set-cluster kubernetes --certificate-authority=./ca.crt --server="https://10.30.13.112:6443" --embed-certs=true --kubeconfig=../admin.conf
+
+6、[WARNING IsDockerSystemdCheck]: detected "cgroupfs" as the Docker cgroup driver. The recommended driver is "systemd". Please follow the guide at https://kubernetes.io/docs/setup/cri/
+	参考：https://kubernetes.io/docs/setup/cri/
+	
+7、	
+
+registry.cn-hangzhou.aliyuncs.com/googles/tiller:v2.13.1
+prom/alertmanager:v0.15.3
+jimmidyson/configmap-reload:v0.2.2
+quay.io/coreos/kube-state-metrics:v1.5.0
+prom/node-exporter:v0.17.0
+prom/prometheus:v2.9.1
+
+prom/pushgateway:v0.6.0
+
+helm install 
+
+tUky7w8Fjn
+
+https://cr.console.aliyun.com/cn-hangzhou/instances/images
+
+admin/Pdmi1234
+
+	
+	
+负载均衡处理机制：
+1、Service
+	四种类型：
+	ClusterIP:
+	NodePort
+	LoadBalancer
+	ExternalName
+2、Ingress Controller
+	用 Service 提供 cluster 内部的负载均衡
+3、Service Load Balancer
+	把 load balancer 直接跑在容器中，实现 Bare Metal 的Service Load Balancer
+4、Custom Load Balancer：自定义负载均衡，并替代 kube-proxy，一般在物理部署Kubernetes 时使用，方便接入公司已有的外部服务

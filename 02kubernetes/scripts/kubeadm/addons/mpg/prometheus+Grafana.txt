@@ -1,0 +1,24 @@
+﻿https://github.com/giantswarm/prometheus
+Kubernetes 监控方案
+可选的方案：
+Cadvisor + Heapster + InfluxDB + Grafana  k8s原生的集群监控方案（Heapster+InfluxDB+Grafana)
+这是Heapster弃用的（建议）时间表 https://github.com/kubernetes-retired/heapster/blob/master/docs/deprecation.md
+Prometheus + Grafana   k8s
+Cadvisor + InfluxDB + Grafana swarm
+manifests/grafana/import-dashboards/job.yaml
+
+1.准备条件
+docker pull registry.cn-hangzhou.aliyuncs.com/gcrproxy/google-container:1.0 
+docker tag registry.cn-hangzhou.aliyuncs.com/gcrproxy/google-container:1.0  harbor.nantong.com:9001/library/ali-kube-state-metrics:v0.5.0
+2.安装
+kubectl apply -f manifests-all.yaml
+kubectl delete namespace monitoring 卸载
+3.导入数据
+kubectl apply --filename ./manifests/grafana/import-dashboards/job.yaml
+kubectl --namespace monitoring delete job grafana-import-dashboards 删除默认数据导入任务
+4.浏览
+kubectl get service -n monitoring monitoring 查看grafana nodePort如32729
+
+http://172.20.20.164:32729
+admin/admin
+
