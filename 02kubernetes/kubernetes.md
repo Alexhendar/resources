@@ -6140,7 +6140,7 @@ Scheduler：
 每个Controller通过API Server提供的接口实时监控整个集群的每个资源对象的当前状态，当发生各种故障导致系统状态发生变化时，会尝试将系统状态修复到“期望状态”。
 
 2. Replication Controller
-  为了区分，资源对象Replication Controller简称RC,而本文是指Controller Manager中的Replication Controller，称为副本控制器。副本控制器的作用即保证集群中一个RC所关联的Pod副本数始终保持预设值。
+    为了区分，资源对象Replication Controller简称RC,而本文是指Controller Manager中的Replication Controller，称为副本控制器。副本控制器的作用即保证集群中一个RC所关联的Pod副本数始终保持预设值。
 
 只有当Pod的重启策略是Always的时候（RestartPolicy=Always），副本控制器才会管理该Pod的操作（创建、销毁、重启等）。
 RC中的Pod模板就像一个模具，模具制造出来的东西一旦离开模具，它们之间就再没关系了。一旦Pod被创建，无论模板如何变化，也不会影响到已经创建的Pod。
@@ -6186,7 +6186,7 @@ $ kubectl rolling-update frontend --image=image:v2
 ```
 
 3. Node Controller
-  kubelet在启动时会通过API Server注册自身的节点信息，并定时向API Server汇报状态信息，API Server接收到信息后将信息更新到etcd中。
+    kubelet在启动时会通过API Server注册自身的节点信息，并定时向API Server汇报状态信息，API Server接收到信息后将信息更新到etcd中。
 
 Node Controller通过API Server实时获取Node的相关信息，实现管理和监控集群中的各个Node节点的相关控制功能。流程如下
 
@@ -6199,7 +6199,7 @@ Node Controller通过API Server实时获取Node的相关信息，实现管理和
 3、逐个读取节点信息，如果节点状态变成非“就绪”状态，则将节点加入待删除队列，否则将节点从该队列删除。
 
 4. ResourceQuota Controller
-  资源配额管理确保指定的资源对象在任何时候都不会超量占用系统物理资源。
+    资源配额管理确保指定的资源对象在任何时候都不会超量占用系统物理资源。
 
 支持三个层次的资源配置管理：
 
@@ -6227,12 +6227,12 @@ ResourceQuota Controller流程图：
 ![controller-manager-3](images/controller-manager-3.png)
 
 5. Namespace Controller
-  用户通过API Server可以创建新的Namespace并保存在etcd中，Namespace Controller定时通过API Server读取这些Namespace信息。
+    用户通过API Server可以创建新的Namespace并保存在etcd中，Namespace Controller定时通过API Server读取这些Namespace信息。
 
 如果Namespace被API标记为优雅删除（即设置删除期限，DeletionTimestamp）,则将该Namespace状态设置为“Terminating”,并保存到etcd中。同时Namespace Controller删除该Namespace下的ServiceAccount、RC、Pod等资源对象。
 
 6. Endpoint Controller
-  Service、Endpoint、Pod的关系：
+    Service、Endpoint、Pod的关系：
 
 ![controller-manager-4](images/controller-manager-4.png)
 
@@ -6246,7 +6246,7 @@ Endpoints表示了一个Service对应的所有Pod副本的访问地址，而Endp
 kube-proxy进程获取每个Service的Endpoints，实现Service的负载均衡功能。
 
 7. Service Controller
-  Service Controller是属于kubernetes集群与外部的云平台之间的一个接口控制器。Service Controller监听Service变化，如果是一个LoadBalancer类型的Service，则确保外部的云平台上对该Service对应的LoadBalancer实例被相应地创建、删除及更新路由转发表。
+    Service Controller是属于kubernetes集群与外部的云平台之间的一个接口控制器。Service Controller监听Service变化，如果是一个LoadBalancer类型的Service，则确保外部的云平台上对该Service对应的LoadBalancer实例被相应地创建、删除及更新路由转发表。
 
 
 参考：https://blog.csdn.net/huwh_/article/details/75675761 
@@ -7166,13 +7166,1195 @@ value-2
 
 # 11 kubernetes调度
 
+
+
 ## 11.1  调度器、预选策略及优选函数
+
+​	kubernets scheduler主要负责的工作是：接受API Server创建的新Pod，并为其安排一个主机，将信息写入etcd中。当然在这个过程中要处理的事情远远没有这么简单，需要综合考虑多种决策因素，比如把同一个replication controller的Pod分配到不同的主机上，防止因主机节点宕机对业务造成较大冲击；以及如何考虑资源均衡，从而提升整个集群的资源使用率等。
+
+### **调度流程**
+
+kubernetes调度器通过API Server查找还未分配主机的Pod，并尝试为这些Pod分配主机，这个过程如下图所示
+
+![scheduler_progress](images/scheduler_progress.jpg)
+
+- 客户端提交创建请求，可以通过API Server的Restful API，也可以使用kubectl命令行工具。支持的数据类型包括JSON和YAML。
+- API Server处理用户请求，存储Pod数据到etcd。
+- 调度器通过API Server查看未绑定的Pod。尝试为Pod分配主机。
+- 过滤主机：调度器用一组规则过滤掉不符合要求的主机。比如Pod指定了所需要的资源量，那么可用资源比Pod需要的资源量少的主机会被过滤掉。
+- 主机打分：对第一步筛选出的符合要求的主机进行打分，在主机打分阶段，调度器会考虑一些整体优化策略，比如把容一个Replication Controller的副本分布到不同的主机上，使用最低负载的主机等。
+- 选择主机：选择打分最高的主机，进行binding操作，结果存储到etcd中。
+- 所选主机对于的kubelet根据调度结果执行Pod创建操作。
+
+### **调度算法**
+
+kubernetes通过一组规则，为每一个未调度的Pod选择一个主机，如调度流程中介绍，kubernetes的调度算法主要包括两个方面，过滤主机和主机打分。
+
+kubernetes调度器的源码位于kubernetes/plugin/中，大体的代码目录结构如下所示：
+
+—-kubernetes
+
+——–plugin
+
+————cmd    //kub-scheduler启动函数在cmd包中
+
+————pkg    //调度相关的具体实现
+
+—————-scheduler
+
+——————–algorithm
+
+————————predicates    //主机筛选策略
+
+————————priorities    //主机打分策略
+
+——————–algorithmprovider
+
+————————defaults       //定义默认的调度器
+
+过滤主机的目的是过滤掉不符合Pod要求的主机，现在kubernetes中实现的过滤规则主要包括以下几种（在kubernetes/plugin/pkg/scheduler/algorithm/predicates中实现）：
+
+- NoDiskConflict：检查在此主机上是否存在卷冲突。如果这个主机已经挂载了卷，其它同样使用这个卷的Pod不能调度到这个主机上。GCE,        Amazon EBS, and Ceph RBD使用的规则如下：
+  - GCE允许同时挂载多个卷，只要这些卷都是只读的。
+  - Amazon EBS不允许不同的Pod挂载同一个卷。
+  - Ceph RBD不允许任何两个pods分享相同的monitor，match pool和 image。
+- NoVolumeZoneConflict：检查给定的zone限制前提下，检查如果在此主机上部署Pod是否存在卷冲突。假定一些volumes可能有zone调度约束， VolumeZonePredicate根据volumes自身需求来评估pod是否满足条件。必要条件就是任何volumes的zone-labels必须与节点上的zone-labels完全匹配。节点上可以有多个zone-labels的约束（比如一个假设的复制卷可能会允许进行区域范围内的访问）。目前，这个只对PersistentVolumeClaims支持，而且只在PersistentVolume的范围内查找标签。处理在Pod的属性中定义的volumes（即不使用PersistentVolume）有可能会变得更加困难，因为要在调度的过程中确定volume的zone，这很有可能会需要调用云提供商。
+- PodFitsResources：检查主机的资源是否满足Pod的需求。根据实际已经分配的资源量做调度，而不是使用已实际使用的资源量做调度。
+- PodFitsHostPorts：检查Pod内每一个容器所需的HostPort是否已被其它容器占用。如果有所需的HostPort不满足需求，那么Pod不能调度到这个主机上。
+- HostName：检查主机名称是不是Pod指定的HostName。
+- MatchNodeSelector：检查主机的标签是否满足Pod的*nodeSelector*属性需求。
+- MaxEBSVolumeCount：确保已挂载的EBS存储卷不超过设置的最大值。默认值是39。它会检查直接使用的存储卷，和间接使用这种类型存储的PVC。计算不同卷的总目，如果新的Pod部署上去后卷的数目会超过设置的最大值，那么Pod不能调度到这个主机上。
+- MaxGCEPDVolumeCount：确保已挂载的GCE存储卷不超过设置的最大值。默认值是16。规则同上。
+
+可以通过配置修改kubernetes默认支持的过滤规则。
+
+经过过滤后，再对符合需求的主机列表进行打分，最终选择一个分值最高的主机部署Pod。kubernetes用一组优先级函数处理每一个待选的主机（在kubernetes/plugin/pkg/scheduler/algorithm/priorities中实现）。每一个优先级函数会返回一个0-10的分数，分数越高表示主机越“好”， 同时每一个函数也会对应一个表示权重的值。最终主机的得分用以下公式计算得出：
+
+finalScoreNode = (weight1 * priorityFunc1) + (weight2 * priorityFunc2) + … + (weightn * priorityFuncn)
+
+现在支持的优先级函数包括以下几种：
+
+- LeastRequestedPriority：如果新的pod要分配给一个节点，这个节点的优先级就由节点空闲的那部分与总容量的比值（即（总容量-节点上pod的容量总和-新pod的容量）/总容量）来决定。CPU和memory权重相当，比值最大的节点的得分最高。需要注意的是，这个优先级函数起到了按照资源消耗来跨节点分配pods的作用。计算公式如下：
+
+cpu((capacity – sum(requested)) * 10 / capacity) + memory((capacity – sum(requested)) * 10 / capacity) / 2
+
+- BalancedResourceAllocation：尽量选择在部署Pod后各项资源更均衡的机器。*BalancedResourceAllocation*不能单独使用，而且必须和*LeastRequestedPriority*同时使用，它分别计算主机上的cpu和memory的比重，主机的分值由cpu比重和memory比重的“距离”决定。计算公式如下：
+
+score = 10 – abs(cpuFraction-memoryFraction)*10
+
+- SelectorSpreadPriority：对于属于同一个service、replication controller的Pod，尽量分散在不同的主机上。如果指定了区域，则会尽量把Pod分散在不同区域的不同主机上。调度一个Pod的时候，先查找Pod对于的service或者replication controller，然后查找service或replication controller中已存在的Pod，主机上运行的已存在的Pod越少，主机的打分越高。
+- CalculateAntiAffinityPriority：对于属于同一个service的Pod，尽量分散在不同的具有指定标签的主机上。
+- ImageLocalityPriority：根据主机上是否已具备Pod运行的环境来打分。ImageLocalityPriority会判断主机上是否已存在Pod运行所需的镜像，根据已有镜像的大小返回一个0-10的打分。如果主机上不存在Pod所需的镜像，返回0；如果主机上存在部分所需镜像，则根据这些镜像的大小来决定分值，镜像越大，打分就越高。
+- NodeAffinityPriority（Kubernetes1.2实验中的新特性）：Kubernetes调度中的亲和性机制。Node Selectors（调度时将pod限定在指定节点上），支持多种操作符（In, NotIn, Exists, DoesNotExist, Gt, Lt），而不限于对节点labels的精确匹配。另外，Kubernetes支持两种类型的选择器，一种是“hard（requiredDuringSchedulingIgnoredDuringExecution）”选择器，它保证所选的主机必须满足所有Pod对主机的规则要求。这种选择器更像是之前的nodeselector，在nodeselector的基础上增加了更合适的表现语法。另一种是“soft（preferresDuringSchedulingIgnoredDuringExecution）”选择器，它作为对调度器的提示，调度器会尽量但不保证满足NodeSelector的所有要求。
+
+### **多层次资源限制**
+
+kubernetes包含多种资源限制，用来控制Container、Pod和多租户级别的资源共享。
+
+![resource-limit-1](images/resource-limit-1.jpg)
+
+
+
+每一个容器都可以指定*spec.container[].resources.limits.cpu*，*spec.container[].resources.limits.memory*，*spec.container[].resources.requests.cpu*和*spec.container[].resources.requests.memory*。对容器的资源限制是可选的，可以通过修改集群配置设置默认的资源限制属性。
+
+LimitRange是在namespace级别设置的pod容量限制。所有在对应的命名空间中的Pod，都会受到LimitRange的资源限制。
+
+Pod的每一类资源限制是Pod中对应的资源类型限制的总和，在调度的过程中调度器使用这个总和值和主机上可用容量做比较，决定主机是否满足资源需求。这种调度属于静态的资源调度，即使主机上的真实负载很低，只要容量限制不满足需求，也不能在主机上部署Pod。
+
+Resource Quota是在命名空间级别设置的资源限制，主要是解决多租户共享资源的问题。Resource Quota中的cpu指对应的命名空间中所有Pod可以使用的cpu的总和，memory指对应的命名空间中所有Pod可以使用的memory的总和。
+
+### **结语**
+
+kubernetes的调度器是完全插件化的实现，可以很方便的集成其它的调度器进行扩展。目前的调度器包含多个级别的资源限制，但是调度相关的实现相对简单，使用一些静态的规则去做调度，对于提升集群资源使用率、保障业务的QoS效果不是很明显。
+
+kubernetes调度器以后可能支持使用不同的调度器去调度不同的任务，这个实验中的新特性对于有多种类型业务混合部署在kubernetes集群中的用户会有很大帮助。
+
+kubernetes正在开发中的QoS借鉴Borg的成熟经验，重点关注提高集群资源利用率的问题，这个特性非常值得期待。
+
+
+
+
 
 ## 11.2  Kubernetes高级调度方式
 
+参考：<https://blog.fleeto.us/post/adv-scheduler-in-k8s/>
+
+<https://www.cnblogs.com/xzkzzz/p/9963511.html>
+
+Kubernetes 的调度器能够满足绝大多数要求，例如保证 Pod 只在资源足够的节点上运行，会尝试把同一个集合的 Pod 分散在不同的节点上，还会尝试平衡不同节点的资源使用率等。
+
+不过有时候你希望控制 Pod 的调度。例如你希望确认某个 Pod 只运行在有特定硬件的节点上；或者想要让频繁互相通信的服务能就近部署；又或者你希望用独立的节点给部分用户提供服务。而且最终，用户总是比 Kubernetes 更了解自己的应用。
+
+所以 Kubernetes 1.6 提供了四个高级调度功能：
+
+- 节点亲和/互斥
+- Taint（污染、变质） 和 Tolerations（容忍、耐受）
+- Pod 的亲和/互斥
+- 以及自定义调度
+
+上述功能在 Kubernetes 1.6 中还属于 Beta 阶段。
+
+## 节点亲和/互斥
+
+节点的亲和和互斥是一种设置调度器选择节点的规则。这个规则是 nodeSelector（1.0 开始就有的功能）的衍生物。这一规则使用类似给 Node 添加自定义标签，在 Pod 中定义选择器的方式。规则在调度器中可以有必要和推荐两种级别。
+
+必要的规则要求 Pod 必须调度到某指定节点上。如果没有符合条件（当然也包括通用的调度要求，例如节点必须有足够的资源）。如果没有符合要求的节点，Pod 就不会被调度，必要规则在 `nodeAffinity` 的 `requiredDuringSchedulingIgnoredDuringExecution` 字段中定义。
+
+例如在一个 GCE 上的多区域 Kubernetes 集群中，我们希望把 Pod 运行在一个 `us-central1-a` 的区域中，我们可以在 Pod 中使用如下的亲和规则：
+
+```yaml
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+          - key: "failure-domain.beta.kubernetes.io/zone"
+            operator: In
+            values: ["us-central1-a"]
+```
+
+`IgnoredDuringExecution` 表示在 Pod 已经成功运行后，如果 Node 的标签发生了变化导致其不再符合 Pod 的调度要求，Pod 依然会继续运行；`requiredDuringSchedulingRequiredDuringExecution` 则相反，一旦出现这种变化，他会立即从 Node 上驱逐 Pod。
+
+推荐级别的规则表示优先选择符合规则要求的节点，如果找不到，则降级选择普通节点。我们可以用优先规则代替必要规则，选择`us-central1-a`进行 Pod 的运行，只要修改成`preferredDuringSchedulingIgnoredDuringExecution`：
+
+```yaml
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+          - key: "failure-domain.beta.kubernetes.io/zone"
+            operator: In
+            values: ["us-central1-a"]
+```
+
+节点的互斥可以利用否定操作符来实现。所以如果让 Pod 避免运行在`us-central1-a`，可以这样实现：
+
+```yaml
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+          - key: "failure-domain.beta.kubernetes.io/zone"
+            operator: NotIn
+            values: ["us-central1-a"]
+```
+
+可用的操作符包括：
+
+- In
+- NotIn
+- Exists
+- DoesNotExist
+- Gt
+- Lt
+
+需要这一功能的场景还包括节点的硬件结构、操作系统版本或者特殊硬件等。节点的亲和与互斥在 Kubernetes 1.6 之中处于 Beta 阶段。
+
+## Taint（污染、变质）和 Tolerations（容忍、耐受）
+
+> 这俩名词让我非常挠头，不好下嘴。
+>
+> 另外这里的阐述比起 Kubectl help taint 来说，清晰程度差了太多。
+
+这一功能让用户可以把一个节点标记为 taint 的话，除非 Pod 被标识为可以耐受污染节点，否则不会有任何 Pod 被调度到该节点上。之所以把 taint 标记到节点而不是像亲和性一样标记在 Pod 上，是因为在这种情况下，绝大多数的 Pod 都不应该部署到 Taint 的节点上。例如用户可能希望把主节点保留给 Kubernetes 系统组件使用，或者把一部分节点保留给一组用户，或者把一组具有特殊硬件的服务器保留给有需求的 Pod。
+
+可以用 `kubectl` 命令对节点进行 taint 操作：
+
+```
+kubectl taint nodes node1 key=value:NoSchedule
+```
+
+在节点上创建了一个 tiant，一个 Pod 必须在 Spec 中做出这样的 Toleration 定义，才能调度到该节点：
+
+```yaml
+tolerations: 
+- key: "key"
+  operator: "Equal"
+  value: "value"
+  effect: "NoSchedule"
+```
+
+effect 除了 NoSchedule 这个值之外，还有一个 Prefer 版本的 `PreferNoSchedule`，另外还有一个 `NoExecute` 选项，这个选项意味着这一 Taint 生效之时，如果该节点内正在运行的 Pod 没有对应的 Tolerate 设置，会被直接逐出。
+
+目前这一特性在 Kubernetes 1.6 升级为 Beta，我们加入了一个 Alpha 特性，可以指定在节点遇到问题的时候，该节点之上的 Pod 可以保持该绑定的时间长度（缺省五分钟）。
+
+> 参考： <https://kubernetes.io/docs/user-guide/node-selection/#per-pod-configurable-eviction-behavior-when-there-are-node-problems-alpha-feature>
+
+## Pod 的亲和与互斥
+
+Node 的亲和与互斥特性允许用户通过对 Pod 的定义来选择运行的 Node。但是还有一种需求就是，Pod 的相互关系，例如对同一个服务里面的 Pod 进行分布或者集中，或者和其他服务的 Pod 如何相处？Pod 的亲和与互斥就应运而生，这一特性在 Kubernetes 1.6 中也处于 Beta 阶段。
+
+看一个例子。假设有一个叫 S1 的前端服务，会经常和一个叫 S2 的后端服务进行通信（南北通信模式），所以我们希望这两个服务能够被安排在同一个云服务区域，但是我们也不想做手工选择——一旦某个区域出了问题，我们希望这些 Pod 能够再次迁移到同一个区域。这里就可以定义 Pod 亲和性来达成这一目的了（假设我们给两组服务都设置 Label，service=s1/s2）：
+
+```yaml
+affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: service
+            operator: In
+            values: ["S1"]
+        topologyKey: failure-domain.beta.kubernetes.io/zone
+```
+
+和节点的亲和性类似，这里也有一个变量：`preferredDuringSchedulingIgnoredDuringExecution`。
+
+Pod 的亲和性弹性很大。设想在性能测试的过程中，发现两个服务的容器处于同一个节点时，S1 的容器会干扰 S2 的容器的性能，这可能会是由缓存或者网络的拥堵造成的。或者出于安全考虑，我们不想两个服务共享同一个节点。要实现这种互斥操作，只要稍微改动一下哎上面的代码：
+
+- `podAffinity` 改为 `podAntiAffinity`
+- `topologyKey` 改为 `kubernetes.io/hostname`
+
+## 自定义调度
+
+如果 Kubernetes 调度器的众多特性还没能满足你的控制欲，可以用自己独立运行的调度器来对指定的 Pod 进行调度。在 Kubernetes 1.6 中，多调度器特性也进入了 Beta 阶段。
+
+一般情况下，每个新 Pod 都会由缺省调度器进行调度。但是如果 Pod 中提供了自定义的调度器名称，那么缺省调度器就会忽略该 Pod，转由指定的调度器把该 Pod 分配给节点。下面举例说明。
+
+代码中的 Pod 指定了`schedulerName`字段：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx:1.10
+```
+
+如果我们在不部署自定义调度器的情况下，创建这个 Pod，缺省调度器会忽略这个 Pod，后果是他会在`Pending`状态下停滞不前。所以我们需要为他创建一个`schedulerName`值为`my-scheduler`的调度器。
+
+可以用任何语言来实现简单或复杂的调度器。下面的简单例子是用 Bash 实现的——随机指派一个节点。注意首先要运行`kubectl proxy`来支持这一脚本的运行。
+
+```bash
+#!/bin/bash
+SERVER='localhost:8001'
+while true;
+do
+    for PODNAME in $(kubectl --server $SERVER get pods -o json | jq '.items[] | select(.spec.schedulerName == "my-scheduler") | select(.spec.nodeName == null) | .metadata.name' | tr -d '"')
+;
+    do
+        NODES=($(kubectl --server $SERVER get nodes -o json | jq '.items[].metadata.name' | tr -d '"'))
+        NUMNODES=${#NODES[@]}
+        CHOSEN=${NODES[$[ $RANDOM % $NUMNODES ]]}
+        curl --header "Content-Type:application/json" --request POST --data '{"apiVersion":"v1", "kind": "Binding", "metadata": {"name": "'$PODNAME'"}, "target": {"apiVersion": "v1", "kind"
+: "Node", "name": "'$CHOSEN'"}}' http://$SERVER/api/v1/namespaces/default/pods/$PODNAME/binding/
+        echo "Assigned $PODNAME to $CHOSEN"
+    done
+    sleep 1
+done
+```
+
+
+
 ## 11.3  资源指标API及自定义指标API
 
+以前是用heapster来收集资源指标才能看，现在heapster要废弃了。
+
+​    从k8s v1.8开始后，引入了新的功能，即把资源指标引入api。 
+
+​    资源指标：metrics-server 
+
+​    自定义指标： prometheus,k8s-prometheus-adapter 
+
+​    因此，新一代架构： 
+
+​    1） 核心指标流水线：由kubelet、metrics-server以及由API server提供的api组成；cpu累计利用率、内存实时利用率、pod的资源占用率及容器的磁盘占用率 
+
+​    2） 监控流水线：用于从系统收集各种指标数据并提供终端用户、存储系统以及HPA，他们包含核心指标以及许多非核心指标。非核心指标不能被k8s所解析。 
+
+​    metrics-server是个api server，仅仅收集cpu利用率、内存利用率等。
+
+```
+`[root@master ~]``# kubectl api-versions``admissionregistration.k8s.io``/``v1beta1``apiextensions.k8s.io``/``v1beta1``apiregistration.k8s.io``/``v1``apiregistration.k8s.io``/``v1beta1``apps``/``v1``apps``/``v1beta1``apps``/``v1beta2``authentication.k8s.io``/``v1``authentication.k8s.io``/``v1beta1``authorization.k8s.io``/``v1`
+```
+
+　　
+
+ 访问 <https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/metrics-server>  获取yaml文件，但这个里面的yaml文件更新了。和视频内的有差别
+
+贴出我修改后的yaml文件，留作备用
+
+```
+[root@master metrics-server]# cat auth-delegator.yaml 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metrics-server:system:auth-delegator
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: metrics-server
+  namespace: kube-system
+```
+
+```
+[root@master metrics-server]# cat auth-reader.yaml 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: metrics-server-auth-reader
+  namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+- kind: ServiceAccount
+  name: metrics-server
+  namespace: kube-system
+```
+
+```
+[root@master metrics-server]# cat metrics-apiservice.yaml 
+apiVersion: apiregistration.k8s.io/v1beta1
+kind: APIService
+metadata:
+  name: v1beta1.metrics.k8s.io
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+spec:
+  service:
+    name: metrics-server
+    namespace: kube-system
+  group: metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+```
+
+```
+[root@master metrics-server]# cat metrics-server-deployment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metrics-server
+  namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-server-config
+  namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: EnsureExists
+data:
+  NannyConfiguration: |-
+    apiVersion: nannyconfig/v1alpha1
+    kind: NannyConfiguration
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-server-v0.3.1
+  namespace: kube-system
+  labels:
+    k8s-app: metrics-server
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    version: v0.3.1
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+      version: v0.3.1
+  template:
+    metadata:
+      name: metrics-server
+      labels:
+        k8s-app: metrics-server
+        version: v0.3.1
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+        seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccountName: metrics-server
+      containers:
+      - name: metrics-server
+        image: mirrorgooglecontainers/metrics-server-amd64:v0.3.1
+        command:
+        - /metrics-server
+        - --metric-resolution=30s
+        - --kubelet-insecure-tls
+        - --kubelet-preferred-address-types=InternalIP,Hostname,InternalDNS,ExternalDNS,ExternalIP
+        # These are needed for GKE, which doesn't support secure communication yet.
+        # Remove these lines for non-GKE clusters, and when GKE supports token-based auth.
+        #- --kubelet-port=10250
+        #- --deprecated-kubelet-completely-insecure=true
+
+        ports:
+        - containerPort: 443
+          name: https
+          protocol: TCP
+      - name: metrics-server-nanny
+        image: mirrorgooglecontainers/addon-resizer:1.8.4
+        resources:
+          limits:
+            cpu: 100m
+            memory: 300Mi
+          requests:
+            cpu: 5m
+            memory: 50Mi
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        volumeMounts:
+        - name: metrics-server-config-volume
+          mountPath: /etc/config
+        command:
+          - /pod_nanny
+          - --config-dir=/etc/config
+          - --cpu=100m
+          - --extra-cpu=0.5m
+          - --memory=100Mi
+          - --extra-memory=50Mi
+          - --threshold=5
+          - --deployment=metrics-server-v0.3.1
+          - --container=metrics-server
+          - --poll-period=300000
+          - --estimator=exponential
+          # Specifies the smallest cluster (defined in number of nodes)
+          #           # resources will be scaled to.
+          - --minClusterSize=10
+
+      volumes:
+        - name: metrics-server-config-volume
+          configMap:
+            name: metrics-server-config
+      tolerations:
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
+```
+
+
+
+```
+[root@master metrics-server]# cat metrics-server-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-server
+  namespace: kube-system
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: "Metrics-server"
+spec:
+  selector:
+    k8s-app: metrics-server
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: https
+```
+
+
+
+```
+[root@master metrics-server]# cat metrics-server-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-server
+  namespace: kube-system
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: "Metrics-server"
+spec:
+  selector:
+    k8s-app: metrics-server
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: https
+[root@master metrics-server]# cat resource-reader.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:metrics-server
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - nodes
+  - namespaces
+  - nodes/stats
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "extensions"
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:metrics-server
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:metrics-server
+subjects:
+- kind: ServiceAccount
+  name: metrics-server
+  namespace: kube-system
+```
+
+
+
+
+
+
+
+如果从github上下载以上文件apply出错，就用上面的metrics-server-deployment.yaml文件，删掉重新apply一下就可以了
+
+```
+`[root@master metrics``-``server]``# kubectl apply -f ./`
+```
+
+　　
+
+```
+`[root@master ~]``#  kubectl proxy --port=8080`
+```
+
+　　
+
+确保metrics-server-v0.3.1-76b796b-4xgvp是running状态，我当时出现了Error发现是yaml里面有问题，最后该掉running了，该来该去该到上面的最终版
+
+```
+`[root@master metrics``-``server]``# kubectl get pods -n kube-system``NAME                                    READY   STATUS    RESTARTS   AGE``canal``-``mgbc2                             ``3``/``3`     `Running   ``12`         `3d23h``canal``-``s4xgb                             ``3``/``3`     `Running   ``23`         `3d23h``canal``-``z98bc                             ``3``/``3`     `Running   ``15`         `3d23h``coredns``-``78d4cf999f``-``5shdq`                `1``/``1`     `Running   ``0`          `6m4s``coredns``-``78d4cf999f``-``xj5pj                ``1``/``1`     `Running   ``0`          `5m53s``etcd``-``master                             ``1``/``1`     `Running   ``13`         `17d``kube``-``apiserver``-``master                   ``1``/``1`     `Running   ``13`         `17d``kube``-``controller``-``manager``-``master          ``1``/``1`     `Running   ``19`         `17d``kube``-``flannel``-``ds``-``amd64``-``8xkfn`             `1``/``1`     `Running   ``0`          `<invalid>``kube``-``flannel``-``ds``-``amd64``-``t7jpc             ``1``/``1`     `Running   ``0`          `<invalid>``kube``-``flannel``-``ds``-``amd64``-``vlbjz             ``1``/``1`     `Running   ``0`          `<invalid>``kube``-``proxy``-``ggcbf                        ``1``/``1`     `Running   ``11`         `17d``kube``-``proxy``-``jxksd                        ``1``/``1`     `Running   ``11`         `17d``kube``-``proxy``-``nkkpc                        ``1``/``1`     `Running   ``12`         `17d``kube``-``scheduler``-``master                   ``1``/``1`     `Running   ``19`         `17d``kubernetes``-``dashboard``-``76479d66bb``-``zr4dd   ``1``/``1`     `Running   ``0`          `<invalid>``metrics``-``server``-``v0.``3.1``-``76b796b``-``4xgvp`     `2``/``2`     `Running   ``0`          `9s`
+```
+
+　　
+
+查看出错日志 -c指定容器名，该pod内有两个容器，metrcis-server只是其中一个，另一个查询方法一样，把名字改掉即可
+
+```
+`[root@master metrics``-``server]``# kubectl logs metrics-server-v0.3.1-76b796b-4xgvp   -c metrics-server -n kube-system`
+```
+
+　　
+
+大致出错的日志内容如下几条；
+
+```
+`403` `Forbidden``", response: "``Forbidden (user``=``system:anonymous, verb``=``get, resource``=``nodes, subresource``=``stats)` `E0903  ``1` `manager.go:``102``] unable to fully collect metrics: [unable to fully scrape metrics ``from` `source kubelet_summary:<hostname>: unable to fetch metrics ``from` `Kubelet <hostname> (<hostname>): Get https:``/``/``<hostname>:``10250``/``stats``/``summary``/``: dial tcp: lookup <hostname> on ``10.96``.``0.10``:``53``: no such host`  `no response ``from` `https:``/``/``10.101``.``248.96``:``443``: Get https:``/``/``10.101``.``248.96``:``443``: Proxy Error ( Connection refused )`  `E1109 ``09``:``54``:``49.509521`       `1` `manager.go:``102``] unable to fully collect metrics: [unable to fully scrape metrics ``from` `source kubelet_summary:linuxea.node``-``2.com``: unable to fetch metrics ``from` `Kubelet linuxea.node``-``2.com` `(``10.10``.``240.203``): Get https:``/``/``10.10``.``240.203``:``10255``/``stats``/``summary``/``: dial tcp ``10.10``.``240.203``:``10255``: connect: connection refused, unable to fully scrape metrics ``from` `source kubelet_summary:linuxea.node``-``3.com``: unable to fetch metrics ``from` `Kubelet linuxea.node``-``3.com` `(``10.10``.``240.143``): Get https:``/``/``10.10``.``240.143``:``10255``/``stats``/``summary``/``: dial tcp ``10.10``.``240.143``:``10255``: connect: connection refused, unable to fully scrape metrics ``from` `source kubelet_summary:linuxea.node``-``4.com``: unable to fetch metrics ``from` `Kubelet linuxea.node``-``4.com` `(``10.10``.``240.142``): Get https:``/``/``10.10``.``240.142``:``10255``/``stats``/``summary``/``: dial tcp ``10.10``.``240.142``:``10255``: connect: connection refused, unable to fully scrape metrics ``from` `source kubelet_summary:linuxea.master``-``1.com``: unable to fetch metrics ``from` `Kubelet linuxea.master``-``1.com` `(``10.10``.``240.161``): Get https:``/``/``10.10``.``240.161``:``10255``/``stats``/``summary``/``: dial tcp ``10.10``.``240.161``:``10255``: connect: connection refused, unable to fully scrape metrics ``from` `source kubelet_summary:linuxea.node``-``1.com``: unable to fetch metrics ``from` `Kubelet linuxea.node``-``1.com` `(``10.10``.``240.202``): Get https:``/``/``10.10``.``240.202``:``10255``/``stats``/``summary``/``: dial tcp ``10.10``.``240.202``:``10255``: connect: connection refused]`
+```
+
+　　
+
+当时我按照网上的方法尝试修改coredns配置，结果搞的日志出现获取所有pod都unable，如下，然后又取消掉了修改，删掉了coredns，让他自己重新生成了俩新的coredns容器
+
+`- --kubelet-insecure-tls`这种方式是禁用tls验证，一般不建议在生产环境中使用。并且由于DNS是无法解析到这些主机名，使用`- --kubelet-preferred-address-types=InternalIP,Hostname,InternalDNS,ExternalDNS,ExternalIP`进行规避。还有另外一种方法，修改coredns，不过，我并不建议这样做。
+
+参考这篇：https://github.com/kubernetes-incubator/metrics-server/issues/131
+
+```
+`metrics``-``server unable to fetch pdo metrics ``for` `pod`
+```
+
+　　
+
+以上为遇到的问题，反正用我上面的yaml绝对保证解决以上所有问题。还有那个flannel改了directrouting之后为啥每次重启集群机器，他就失效呢，我不得不在删掉flannel然后重新生成，这个问题前面文章写到了。
+
+此时执行如下命令就都成功了，item里也有值了
+
+```
+`[root@master ~]``# curl http://localhost:8080/apis/metrics.k8s.io/v1beta1``{``  ``"kind"``: ``"APIResourceList"``,``  ``"apiVersion"``: ``"v1"``,``  ``"groupVersion"``: ``"metrics.k8s.io/v1beta1"``,``  ``"resources"``: [``    ``{``      ``"name"``: ``"nodes"``,``      ``"singularName"``: "",``      ``"namespaced"``: false,``      ``"kind"``: ``"NodeMetrics"``,``      ``"verbs"``: [``        ``"get"``,``        ``"list"``      ``]``    ``},``    ``{``      ``"name"``: ``"pods"``,``      ``"singularName"``: "",``      ``"namespaced"``: true,``      ``"kind"``: ``"PodMetrics"``,``      ``"verbs"``: [``        ``"get"``,``        ``"list"``      ``]``    ``}``  ``]`
+```
+
+　　
+
+```
+`[root@master metrics``-``server]``# curl http://localhost:8080/apis/metrics.k8s.io/v1beta1/pods | more``  ``%` `Total    ``%` `Received ``%` `Xferd  Average Speed   Time    Time     Time  Current``                                 ``Dload  Upload   Total   Spent    Left  Speed``100` `14868`    `0` `14868`    `0`     `0`  `1521k`      `0` `-``-``:``-``-``:``-``-` `-``-``:``-``-``:``-``-` `-``-``:``-``-``:``-``-` `1613k``{``  ``"kind"``: ``"PodMetricsList"``,``  ``"apiVersion"``: ``"metrics.k8s.io/v1beta1"``,``  ``"metadata"``: {``    ``"selfLink"``: ``"/apis/metrics.k8s.io/v1beta1/pods"``  ``},``  ``"items"``: [``    ``{``      ``"metadata"``: {``        ``"name"``: ``"pod1"``,``        ``"namespace"``: ``"prod"``,``        ``"selfLink"``: ``"/apis/metrics.k8s.io/v1beta1/namespaces/prod/pods/pod1"``,``        ``"creationTimestamp"``: ``"2019-01-29T02:39:12Z"``      ``},`
+```
+
+　　
+
+```
+`[root@master metrics``-``server]``# kubectl top pods``NAME                CPU(cores)   MEMORY(bytes)  ``filebeat``-``ds``-``4llpp`   `1m`           `2Mi`            `filebeat``-``ds``-``dv49l   ``1m`           `5Mi`            `myapp``-``0`             `0m`           `1Mi`            `myapp``-``1`             `0m`           `2Mi`            `myapp``-``2`             `0m`           `1Mi`            `myapp``-``3`             `0m`           `1Mi`            `myapp``-``4`             `0m`           `2Mi`   
+```
+
+　　
+
+```
+`[root@master metrics``-``server]``# kubectl top nodes``NAME     CPU(cores)   CPU``%`   `MEMORY(bytes)   MEMORY``%`  `master   ``206m`         `5``%`     `1377Mi`          `72``%`      `node1    ``88m`          `8``%`     `534Mi`           `28``%`      `node2    ``78m`          `7``%`     `935Mi`           `49``%`
+```
+
+　　
+
+ 
+
+# 自定义指标（prometheus)
+
+​    大家看到，我们的metrics已经可以正常工作了。不过，metrics只能监控cpu和内存，对于其他指标如用户自定义的监控指标，metrics就无法监控到了。这时就需要另外一个组件叫prometheus。
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/0d4d544aa912e332.png?x-oss-process=style/bb)
+
+​    prometheus的部署非常麻烦。
+
+​    node_exporter是agent;
+
+​    PromQL相当于sql语句来查询数据; 
+
+​    k8s-prometheus-adapter:prometheus是不能直接解析k8s的指标的，需要借助k8s-prometheus-adapter转换成api
+
+​    kube-state-metrics是用来整合数据的。
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/525053af871a9b7e.png?x-oss-process=style/bb)
+
+​    下面开始部署。
+
+​    访问 <https://github.com/ikubernetes/k8s-prom>
+
+ 
+
+```
+`[root@master pro]``# git clone https://github.com/iKubernetes/k8s-prom.git`
+```
+
+　　
+
+先创建一个叫prom的名称空间： 
+
+```
+`[root@master k8s``-``prom]``# kubectl apply -f namespace.yaml``namespace``/``prom created`
+```
+
+　　
+
+ 部署node_exporter： 
+
+ 
+
+```
+`[root@master k8s``-``prom]``# cd node_exporter/``[root@master node_exporter]``# ls``node``-``exporter``-``ds.yaml  node``-``exporter``-``svc.yaml``[root@master node_exporter]``# kubectl apply -f .``daemonset.apps``/``prometheus``-``node``-``exporter created``service``/``prometheus``-``node``-``exporter created`
+```
+
+　　
+
+```
+`[root@master node_exporter]``# kubectl get pods -n prom``NAME                             READY     STATUS    RESTARTS   AGE``prometheus``-``node``-``exporter``-``dmmjj   ``1``/``1`       `Running   ``0`          `7m``prometheus``-``node``-``exporter``-``ghz2l   ``1``/``1`       `Running   ``0`          `7m``prometheus``-``node``-``exporter``-``zt2lw   ``1``/``1`       `Running   ``0`          `7m`
+```
+
+　　
+
+​    部署prometheus: 
+
+ 
+
+```
+`[root@master k8s``-``prom]``# cd prometheus/``[root@master prometheus]``# ls``prometheus``-``cfg.yaml  prometheus``-``deploy.yaml  prometheus``-``rbac.yaml  prometheus``-``svc.yaml``[root@master prometheus]``# kubectl apply -f .``configmap``/``prometheus``-``config created``deployment.apps``/``prometheus``-``server created``clusterrole.rbac.authorization.k8s.io``/``prometheus created``serviceaccount``/``prometheus created``clusterrolebinding.rbac.authorization.k8s.io``/``prometheus created``service``/``prometheus created`
+```
+
+　　
+
+看prom名称空间中的所有资源： pod/prometheus-server-76dc8df7b-hw8xc  处于 Pending   状态，日志显示内存不足
+
+```
+`[root@master prometheus]``# kubectl logs prometheus-server-556b8896d6-dfqkp -n prom ``Warning  FailedScheduling  ``2m52s` `(x2 over ``2m52s``)  default``-``scheduler  ``0``/``3` `nodes are available: ``3` `Insufficient memory.`
+```
+
+　　
+
+修改prometheus-deploy.yaml，删掉内存那三行
+
+```
+`resources:``  ``limits:``    ``memory: ``2Gi`
+```
+
+　　
+
+重新apply
+
+```
+`[root@master prometheus]``# kubectl apply -f prometheus-deploy.yaml`
+```
+
+　　
+
+```
+`[root@master prometheus]``# kubectl get all -n prom``NAME                                     READY     STATUS    RESTARTS   AGE``pod``/``prometheus``-``node``-``exporter``-``dmmjj       ``1``/``1`       `Running   ``0`          `10m``pod``/``prometheus``-``node``-``exporter``-``ghz2l       ``1``/``1`       `Running   ``0`          `10m``pod``/``prometheus``-``node``-``exporter``-``zt2lw       ``1``/``1`       `Running   ``0`          `10m``pod``/``prometheus``-``server``-``65f5d59585``-``6l8m8`   `1``/``1`       `Running   ``0`          `55s``NAME                               ``TYPE`        `CLUSTER``-``IP      EXTERNAL``-``IP   PORT(S)          AGE``service``/``prometheus                 NodePort    ``10.111``.``127.64`   `<none>        ``9090``:``30090``/``TCP   ``56s``service``/``prometheus``-``node``-``exporter   ClusterIP   ``None`            `<none>        ``9100``/``TCP         ``10m``NAME                                      DESIRED   CURRENT   READY     UP``-``TO``-``DATE   AVAILABLE   NODE SELECTOR   AGE``daemonset.apps``/``prometheus``-``node``-``exporter   ``3`         `3`         `3`         `3`            `3`           `<none>          ``10m``NAME                                DESIRED   CURRENT   UP``-``TO``-``DATE   AVAILABLE   AGE``deployment.apps``/``prometheus``-``server   ``1`         `1`         `1`            `1`           `56s``NAME                                           DESIRED   CURRENT   READY     AGE``replicaset.apps``/``prometheus``-``server``-``65f5d59585`   `1`         `1`         `1`         `56s`
+```
+
+　　
+
+上面我们看到通过NodePorts的方式，可以通过宿主机的30090端口，来访问prometheus容器里面的应用。 
+
+ 
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/1fc8c9cd6599b3b2.png?x-oss-process=style/bb)
+
+​    最好挂载个pvc的存储，要不这些监控数据过一会就没了。 
+
+​    部署kube-state-metrics，用来整合数据：  
+
+```
+`[root@master k8s``-``prom]``# cd kube-state-metrics/``[root@master kube``-``state``-``metrics]``# ls``kube``-``state``-``metrics``-``deploy.yaml  kube``-``state``-``metrics``-``rbac.yaml  kube``-``state``-``metrics``-``svc.yaml``[root@master kube``-``state``-``metrics]``# kubectl apply -f .``deployment.apps``/``kube``-``state``-``metrics created``serviceaccount``/``kube``-``state``-``metrics created``clusterrole.rbac.authorization.k8s.io``/``kube``-``state``-``metrics created``clusterrolebinding.rbac.authorization.k8s.io``/``kube``-``state``-``metrics created``service``/``kube``-``state``-``metrics created`
+```
+
+　　
+
+```
+`[root@master kube``-``state``-``metrics]``# kubectl get all -n prom``NAME                                      READY     STATUS    RESTARTS   AGE``pod``/``kube``-``state``-``metrics``-``58dffdf67d``-``v9klh   ``1``/``1`       `Running   ``0`          `14m``NAME                               ``TYPE`        `CLUSTER``-``IP      EXTERNAL``-``IP   PORT(S)          AGE``service``/``kube``-``state``-``metrics         ClusterIP   ``10.111``.``41.139`   `<none>        ``8080``/``TCP         ``14m`
+```
+
+　　
+
+部署k8s-prometheus-adapter,这个需要自制证书：
+
+```
+`[root@master k8s``-``prometheus``-``adapter]``# cd /etc/kubernetes/pki/``[root@master pki]``# (umask 077; openssl genrsa -out serving.key 2048)``Generating RSA private key, ``2048` `bit ``long` `modulus``...........................................................................................``+``+``+``...............``+``+``+``e ``is` `65537` `(``0x10001``)`
+```
+
+　　
+
+​    证书请求： 
+
+```
+`[root@master pki]``#  openssl req -new -key serving.key -out serving.csr -subj "/CN=serving"`
+```
+
+　　
+
+​    开始签证： 
+
+ 
+
+```
+`[root@master pki]``# openssl  x509 -req -in serving.csr -CA ./ca.crt -CAkey ./ca.key -CAcreateserial -out serving.crt -days 3650``Signature ok``subject``=``/``CN``=``serving``Getting CA Private Key`
+```
+
+　　
+
+​    创建加密的配置文件： 
+
+ 
+
+```
+`[root@master pki]``# kubectl create secret generic cm-adapter-serving-certs --from-file=serving.crt=./serving.crt --from-file=serving.key=./serving.key  -n prom``secret``/``cm``-``adapter``-``serving``-``certs created`
+```
+
+　　
+
+​    注：cm-adapter-serving-certs是custom-metrics-apiserver-deployment.yaml文件里面的名字。
+
+ 
+
+```
+`[root@master pki]``# kubectl get secrets -n prom``NAME                             ``TYPE`                                  `DATA      AGE``cm``-``adapter``-``serving``-``certs         Opaque                                ``2`         `51s``default``-``token``-``knsbg              kubernetes.io``/``service``-``account``-``token   ``3`         `4h``kube``-``state``-``metrics``-``token``-``sccdf   kubernetes.io``/``service``-``account``-``token   ``3`         `3h``prometheus``-``token``-``nqzbz           kubernetes.io``/``service``-``account``-``token   ``3`         `3h`
+```
+
+　　
+
+  部署k8s-prometheus-adapter：
+
+```
+`[root@master k8s``-``prom]``# cd k8s-prometheus-adapter/``[root@master k8s``-``prometheus``-``adapter]``# ls``custom``-``metrics``-``apiserver``-``auth``-``delegator``-``cluster``-``role``-``binding.yaml   custom``-``metrics``-``apiserver``-``service.yaml``custom``-``metrics``-``apiserver``-``auth``-``reader``-``role``-``binding.yaml              custom``-``metrics``-``apiservice.yaml``custom``-``metrics``-``apiserver``-``deployment.yaml                            custom``-``metrics``-``cluster``-``role.yaml``custom``-``metrics``-``apiserver``-``resource``-``reader``-``cluster``-``role``-``binding.yaml  custom``-``metrics``-``resource``-``reader``-``cluster``-``role.yaml``custom``-``metrics``-``apiserver``-``service``-``account.yaml                       hpa``-``custom``-``metrics``-``cluster``-``role``-``binding.yaml`
+```
+
+　　
+
+ 由于k8s v1.11.2和k8s-prometheus-adapter最新版不兼容，1.13的也不兼容，解决办法就是访问https://github.com/DirectXMan12/k8s-prometheus-adapter/tree/master/deploy/manifests下载最新版的custom-metrics-apiserver-deployment.yaml文件，并把里面的namespace的名字改成prom；同时还要下载custom-metrics-config-map.yaml文件到本地来，并把里面的namespace的名字改成prom。
+
+```
+`[root@master k8s``-``prometheus``-``adapter]``# kubectl apply -f .``clusterrolebinding.rbac.authorization.k8s.io``/``custom``-``metrics:system:auth``-``delegator created``rolebinding.rbac.authorization.k8s.io``/``custom``-``metrics``-``auth``-``reader created``deployment.apps``/``custom``-``metrics``-``apiserver created``clusterrolebinding.rbac.authorization.k8s.io``/``custom``-``metrics``-``resource``-``reader created``serviceaccount``/``custom``-``metrics``-``apiserver created``service``/``custom``-``metrics``-``apiserver created``apiservice.apiregistration.k8s.io``/``v1beta1.custom.metrics.k8s.io created``clusterrole.rbac.authorization.k8s.io``/``custom``-``metrics``-``server``-``resources created``clusterrole.rbac.authorization.k8s.io``/``custom``-``metrics``-``resource``-``reader created``clusterrolebinding.rbac.authorization.k8s.io``/``hpa``-``controller``-``custom``-``metrics created`
+```
+
+　　
+
+```
+`[root@master k8s``-``prometheus``-``adapter]``# kubectl get all -n prom``NAME                                           READY     STATUS    RESTARTS   AGE``pod``/``custom``-``metrics``-``apiserver``-``65f545496``-``64lsz`   `1``/``1`       `Running   ``0`          `6m``pod``/``kube``-``state``-``metrics``-``58dffdf67d``-``v9klh        ``1``/``1`       `Running   ``0`          `4h``pod``/``prometheus``-``node``-``exporter``-``dmmjj             ``1``/``1`       `Running   ``0`          `4h``pod``/``prometheus``-``node``-``exporter``-``ghz2l             ``1``/``1`       `Running   ``0`          `4h``pod``/``prometheus``-``node``-``exporter``-``zt2lw             ``1``/``1`       `Running   ``0`          `4h``pod``/``prometheus``-``server``-``65f5d59585``-``6l8m8`         `1``/``1`       `Running   ``0`          `4h``NAME                               ``TYPE`        `CLUSTER``-``IP      EXTERNAL``-``IP   PORT(S)          AGE``service``/``custom``-``metrics``-``apiserver   ClusterIP   ``10.103``.``87.246`   `<none>        ``443``/``TCP          ``36m``service``/``kube``-``state``-``metrics         ClusterIP   ``10.111``.``41.139`   `<none>        ``8080``/``TCP         ``4h``service``/``prometheus                 NodePort    ``10.111``.``127.64`   `<none>        ``9090``:``30090``/``TCP   ``4h``service``/``prometheus``-``node``-``exporter   ClusterIP   ``None`            `<none>        ``9100``/``TCP         ``4h``NAME                                      DESIRED   CURRENT   READY     UP``-``TO``-``DATE   AVAILABLE   NODE SELECTOR   AGE``daemonset.apps``/``prometheus``-``node``-``exporter   ``3`         `3`         `3`         `3`            `3`           `<none>          ``4h``NAME                                       DESIRED   CURRENT   UP``-``TO``-``DATE   AVAILABLE   AGE``deployment.apps``/``custom``-``metrics``-``apiserver   ``1`         `1`         `1`            `1`           `36m``deployment.apps``/``kube``-``state``-``metrics         ``1`         `1`         `1`            `1`           `4h``deployment.apps``/``prometheus``-``server          ``1`         `1`         `1`            `1`           `4h``NAME                                                  DESIRED   CURRENT   READY     AGE``replicaset.apps``/``custom``-``metrics``-``apiserver``-``5f6b4d857d`   `0`         `0`         `0`         `36m``replicaset.apps``/``custom``-``metrics``-``apiserver``-``65f545496`    `1`         `1`         `1`         `6m``replicaset.apps``/``custom``-``metrics``-``apiserver``-``86ccf774d5`   `0`         `0`         `0`         `17m``replicaset.apps``/``kube``-``state``-``metrics``-``58dffdf67d`         `1`         `1`         `1`         `4h``replicaset.apps``/``prometheus``-``server``-``65f5d59585`          `1`         `1`         `1`         `4h`
+```
+
+　　
+
+ 
+
+  最终看到prom名称空间里面的所有资源都是running状态了。 
+
+ 
+
+```
+`[root@master k8s``-``prometheus``-``adapter]``# kubectl api-versions``custom.metrics.k8s.io``/``v1beta1`
+```
+
+　　
+
+  可以看到custom.metrics.k8s.io/v1beta1这个api了。我那没看到上面这个东西，但是不影响使用
+
+  开个代理： 
+
+```
+`[root@master k8s``-``prometheus``-``adapter]``# kubectl proxy --port=8080`
+```
+
+　　
+
+​     可以看到指标数据了：
+
+ 
+
+```
+`[root@master pki]``# curl  http://localhost:8080/apis/custom.metrics.k8s.io/v1beta1/`` ``{``      ``"name"``: ``"pods/ceph_rocksdb_submit_transaction_sync"``,``      ``"singularName"``: "",``      ``"namespaced"``: true,``      ``"kind"``: ``"MetricValueList"``,``      ``"verbs"``: [``        ``"get"``      ``]``    ``},``    ``{``      ``"name"``: ``"jobs.batch/kube_deployment_created"``,``      ``"singularName"``: "",``      ``"namespaced"``: true,``      ``"kind"``: ``"MetricValueList"``,``      ``"verbs"``: [``        ``"get"``      ``]``    ``},``    ``{``      ``"name"``: ``"jobs.batch/kube_pod_owner"``,``      ``"singularName"``: "",``      ``"namespaced"``: true,``      ``"kind"``: ``"MetricValueList"``,``      ``"verbs"``: [``        ``"get"``      ``]``    ``},`
+```
+
+　　
+
+  下面我们就可以愉快的创建HPA了（水平Pod自动伸缩）。
+
+​    另外，prometheus还可以和grafana整合。如下步骤。
+
+​    先下载文件grafana.yaml，访问https://github.com/kubernetes/heapster/blob/master/deploy/kube-config/influxdb/grafana.yaml
+
+```
+`[root@master pro]``# wget https://raw.githubusercontent.com/kubernetes-retired/heapster/master/deploy/kube-config/influxdb/grafana.yaml`
+```
+
+　　
+
+​    修改grafana.yaml文件内容：
+
+ 
+
+```
+`把namespace: kube``-``system改成prom，有两处；`` ``把env里面的下面两个注释掉：``        ``-` `name: INFLUXDB_HOST``          ``value: monitoring``-``influxdb`` ``在最有一行加个``type``: NodePort`` ``ports:``  ``-` `port: ``80``    ``targetPort: ``3000``  ``selector:``    ``k8s``-``app: grafana``  ``type``: NodePort`
+```
+
+　　
+
+```
+`[root@master pro]``# kubectl apply -f grafana.yaml``deployment.extensions``/``monitoring``-``grafana created``service``/``monitoring``-``grafana created`
+```
+
+　　
+
+```
+`[root@master pro]``# kubectl get pods -n prom``NAME                                       READY     STATUS    RESTARTS   AGE``monitoring``-``grafana``-``ffb4d59bd``-``gdbsk         ``1``/``1`       `Running   ``0`          `5s`
+```
+
+　　
+
+如果还有问题就删掉上面的那几个，重新在apply一下
+
+​    看到grafana这个pod运行起来了。 
+
+ 
+
+```
+`[root@master pro]``# kubectl get svc -n prom``NAME                       ``TYPE`        `CLUSTER``-``IP       EXTERNAL``-``IP   PORT(S)          AGE``monitoring``-``grafana         NodePort    ``10.106``.``164.205`   `<none>        ``80``:``32659``/``TCP     ``19m`
+```
+
+　　
+
+ 我们可以访问宿主机master ip： [http://172.16.1.100:32659](http://172.16.1.100:32659/)
+
+ 
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/604625f54aacf6a3.png?x-oss-process=style/bb)
+
+ ![img](http://img.blog.itpub.net/blog/2018/10/16/41ece597528e5a7b.png?x-oss-process=style/bb)
+
+ 
+
+**上图端口号是9090**，根据自己svc实际端口去填写。除了把80 改成9090.其余不变，为什么是上面的格式，因为他们都处于一个名称空间内，可以通过服务名访问到的。
+
+```
+`[root@master pro]``# kubectl get svc -n prom    ``NAME                       ``TYPE`        `CLUSTER``-``IP      EXTERNAL``-``IP   PORT(S)          AGE``custom``-``metrics``-``apiserver   ClusterIP   ``10.109``.``58.249`   `<none>        ``443``/``TCP          ``52m``kube``-``state``-``metrics         ClusterIP   ``10.103``.``52.45`    `<none>        ``8080``/``TCP         ``69m``monitoring``-``grafana         NodePort    ``10.110``.``240.31`   `<none>        ``80``:``31128``/``TCP     ``17m``prometheus                 NodePort    ``10.110``.``19.171`   `<none>        ``9090``:``30090``/``TCP   ``145m``prometheus``-``node``-``exporter   ClusterIP   ``None`            `<none>        ``9100``/``TCP         ``146m`
+```
+
+　　
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/7c2d036861fa3ef9.png?x-oss-process=style/bb)
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/524cf9fbd35a52c5.png?x-oss-process=style/bb)
+
+​    然后，就能从界面上看到相应的数据了。 
+
+​    登录下面的网站下载个grafana监控k8s-prometheus的模板： https://grafana.com/dashboards/6417
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/66f01c7316924cee.png?x-oss-process=style/bb)
+
+​    然后再grafana的界面中导入上面下载的模板： 
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/2b9c5500592f8252.png?x-oss-process=style/bb)
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/ad93e088a4d9af04.png?x-oss-process=style/bb)
+
+​    导入模板之后，就能看到监控数据了： 
+
+![img](http://img.blog.itpub.net/blog/2018/10/16/72081d613d18803a.png?x-oss-process=style/bb)
+
+ 
+
+ HPA的没去实际操作，因为以前自己做过了，就不做了，直接复制过来，如有问题自己单独解决
+
+# HPA（水平pod自动扩展） 
+
+​    当pod压力大了，会根据负载自动扩展Pod个数以均匀压力。 
+
+​    目前，HPA只支持两个版本，v1版本只支持核心指标的定义（只能根据cpu利用率的指标进行pod的扩展）； 
+
+```
+`[root@master pro]``# kubectl explain hpa.spec.scaleTargetRef``scaleTargetRef：表示基于什么指标来计算pod伸缩的标准`
+```
+
+　　
+
+```
+`[root@master pro]``# kubectl api-versions |grep auto``autoscaling``/``v1``autoscaling``/``v2beta1`
+```
+
+　　
+
+​    上面看到分别支持hpav1和hpav2。 
+
+​    下面我们用命令行的方式重新创建一个带有资源限制的pod myapp： 
+
+```
+`[root@master ~]``# kubectl run myapp --image=ikubernetes/myapp:v1 --replicas=1 --requests='cpu=50m,memory=256Mi' --limits='cpu=50m,memory=256Mi' --labels='app=myapp' --expose --port=80``service``/``myapp created``deployment.apps``/``myapp created`
+```
+
+　　
+
+```
+`[root@master ~]``# kubectl get pods``NAME                     READY     STATUS    RESTARTS   AGE``myapp``-``6985749785``-``fcvwn   ``1``/``1`       `Running   ``0`          `58s`
+```
+
+　　
+
+​    下面我们让myapp 这个pod能自动水平扩展，用kubectl autoscale，其实就是指明HPA控制器的。 
+
+ 
+
+```
+`[root@master ~]``# kubectl autoscale deployment myapp --min=1 --max=8 --cpu-percent=60``horizontalpodautoscaler.autoscaling``/``myapp autoscaled`
+```
+
+　　
+
+ --min：表示最小扩展pod的个数 
+
+​    --max：表示最多扩展pod的个数 
+
+​    --cpu-percent：cpu利用率 
+
+```
+`[root@master ~]``# kubectl get hpa``NAME      REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE``myapp     Deployment``/``myapp   ``0``%``/``60``%`    `1`         `8`         `1`          `4m`
+```
+
+　　
+
+```
+`[root@master ~]``# kubectl get svc``NAME         ``TYPE`        `CLUSTER``-``IP       EXTERNAL``-``IP   PORT(S)             AGE``myapp        ClusterIP   ``10.105``.``235.197`   `<none>        ``80``/``TCP              ``19`
+```
+
+　　
+
+​    下面我们把service改成NodePort的方式：
+
+ 
+
+```
+`[root@master ~]``# kubectl patch svc myapp -p '{"spec":{"type": "NodePort"}}'``service``/``myapp patched`
+```
+
+　　
+
+```
+`[root@master ~]``# kubectl get svc``NAME         ``TYPE`        `CLUSTER``-``IP       EXTERNAL``-``IP   PORT(S)             AGE``myapp        NodePort    ``10.105``.``235.197`   `<none>        ``80``:``31990``/``TCP        ``22m`
+```
+
+　　
+
+```
+`[root@master ~]``# yum install httpd-tools #主要是为了安装ab压测工具`
+```
+
+　　
+
+```
+`[root@master ~]``# kubectl get pods -o wide``NAME                     READY     STATUS    RESTARTS   AGE       IP            NODE``myapp``-``6985749785``-``fcvwn   ``1``/``1`       `Running   ``0`          `25m`       `10.244``.``2.84`   `node2`
+```
+
+　　
+
+​    开始用ab工具压测 
+
+ 
+
+```
+`[root@master ~]``# ab -c 1000 -n 5000000 http://172.16.1.100:31990/index.html``This ``is` `ApacheBench, Version ``2.3` `<$Revision: ``1430300` `$>``Copyright ``1996` `Adam Twiss, Zeus Technology Ltd, http:``/``/``www.zeustech.net``/``Licensed to The Apache Software Foundation, http:``/``/``www.apache.org``/``Benchmarking ``172.16``.``1.100` `(be patient)`
+```
+
+　　
+
+​    多等一会，会看到pods的cpu利用率为98%，需要扩展为2个pod了： 
+
+ 
+
+```
+`[root@master ~]``# kubectl describe hpa``resource cpu on pods  (as a percentage of request):  ``98``%` `(``49m``) ``/` `60``%``Deployment pods:                                       ``1` `current ``/` `2` `desired`
+```
+
+　　
+
+```
+`[root@master ~]``# kubectl top pods``NAME                     CPU(cores)   MEMORY(bytes)  ``myapp``-``6985749785``-``fcvwn   ``49m` `（我们设置的总cpu是``50m``）         ``3Mi`
+```
+
+　　
+
+```
+`[root@master ~]``#  kubectl get pods -o wide``NAME                     READY     STATUS    RESTARTS   AGE       IP             NODE``myapp``-``6985749785``-``fcvwn   ``1``/``1`       `Running   ``0`          `32m`       `10.244``.``2.84`    `node2``myapp``-``6985749785``-``sr4qv   ``1``/``1`       `Running   ``0`          `2m`        `10.244``.``1.105`   `node1`
+```
+
+　　
+
+​    上面我们看到已经自动扩展为2个pod了，再等一会，随着cpu压力的上升，还会看到自动扩展为4个或更多的pod： 
+
+ 
+
+```
+`[root@master ~]``#  kubectl get pods -o wide``NAME                     READY     STATUS    RESTARTS   AGE       IP             NODE``myapp``-``6985749785``-``2mjrd`   `1``/``1`       `Running   ``0`          `1m`        `10.244``.``1.107`   `node1``myapp``-``6985749785``-``bgz6p   ``1``/``1`       `Running   ``0`          `1m`        `10.244``.``1.108`   `node1``myapp``-``6985749785``-``fcvwn   ``1``/``1`       `Running   ``0`          `35m`       `10.244``.``2.84`    `node2``myapp``-``6985749785``-``sr4qv   ``1``/``1`       `Running   ``0`          `5m`        `10.244``.``1.105`   `node1`
+```
+
+　　
+
+​    等压测一停止，pod个数还会收缩为正常个数的。
+
+​    上面我们用的是hpav1来做的水平pod自动扩展的功能，我们前面也说过，hpa v1版本只能根据cpu利用率括水平自动扩展pod。 
+
+​    下面我们介绍一下hpa v2的功能，它可以根据自定义指标利用率来水平扩展pod。 
+
+​    在使用hpa v2版本前，我们先把前面创建的hpa v1版本删除了，以免和我们测试的hpa v2版本冲突： 
+
+```
+`[root@master hpa]``# kubectl delete hpa myapp``horizontalpodautoscaler.autoscaling ``"myapp"` `deleted`
+```
+
+　　
+
+好了，下面我们创建一个hpa v2： 
+
+```
+`[root@master hpa]``# cat hpa-v2-demo.yaml``apiVersion: autoscaling``/``v2beta1   ``#从这可以看出是hpa v2版本``kind: HorizontalPodAutoscaler``metadata:``  ``name: myapp``-``hpa``-``v2``spec:``  ``scaleTargetRef: ``#根据什么指标来做评估压力``    ``apiVersion: apps``/``v1 ``#对谁来做自动扩展``    ``kind: Deployment``    ``name: myapp``  ``minReplicas: ``1` `#最少副本数量``  ``maxReplicas: ``10``  ``metrics: ``#表示依据哪些指标来进行评估``  ``-` `type``: Resource ``#表示基于资源进行评估``    ``resource:``      ``name: cpu``      ``targetAverageUtilization: ``55` `#表示pod cpu使用率超过55%，就自动水平扩展pod个数``  ``-` `type``: Resource``    ``resource:``      ``name: memory ``#我们知道hpa v1版本只能根据cpu来进行评估，而到了我们的hpa v2版本就可以根据内存来进行评估了``      ``targetAverageValue: ``50Mi` `#表示pod内存使用超过50M，就自动水平扩展pod个数`
+```
+
+　　
+
+```
+`[root@master hpa]``# kubectl apply -f hpa-v2-demo.yaml``horizontalpodautoscaler.autoscaling``/``myapp``-``hpa``-``v2 created`
+```
+
+　　
+
+```
+`[root@master hpa]``# kubectl get hpa``NAME           REFERENCE          TARGETS                MINPODS   MAXPODS   REPLICAS   AGE``myapp``-``hpa``-``v2   Deployment``/``myapp   ``3723264``/``50Mi``, ``0``%``/``55``%`   `1`         `10`        `1`          `37s`
+```
+
+　　
+
+​    我们看到现在只有一个pod 
+
+ 
+
+```
+`[root@master hpa]``# kubectl get pods -o wide``NAME                     READY     STATUS    RESTARTS   AGE       IP            NODE``myapp``-``6985749785``-``fcvwn   ``1``/``1`       `Running   ``0`          `57m`       `10.244``.``2.84`   `node2`
+```
+
+　　
+
+​    开始压测： 
+
+ 
+
+```
+`[root@master ~]``# ab -c 100 -n 5000000 http://172.16.1.100:31990/index.html`
+```
+
+　　
+
+​    看hpa v2的检测情况： 
+
+ 
+
+```
+`[root@master hpa]``# kubectl describe hpa``Metrics:                                               ( current ``/` `target )``  ``resource memory on pods:                             ``3756032` `/` `50Mi``  ``resource cpu on pods  (as a percentage of request):  ``82``%` `(``41m``) ``/` `55``%``Min` `replicas:                                          ``1``Max` `replicas:                                          ``10``Deployment pods:                                       ``1` `current ``/` `2` `desired`
+```
+
+　　
+
+```
+`[root@master hpa]``# kubectl get pods -o wide``NAME                     READY     STATUS    RESTARTS   AGE       IP             NODE``myapp``-``6985749785``-``8frq4`   `1``/``1`       `Running   ``0`          `1m`        `10.244``.``1.109`   `node1``myapp``-``6985749785``-``fcvwn   ``1``/``1`       `Running   ``0`          `1h`        `10.244``.``2.84`    `node2`
+```
+
+　　
+
+  看到自动扩展出了2个Pod。等压测一停止，pod个数还会收缩为正常个数的。 
+
+​    将来我们不光可以用hpa v2，根据cpu和内存使用率进行伸缩Pod个数，还可以根据http并发量等。 
+
+​    比如下面的： 
+
+```
+`[root@master hpa]``# cat hpa-v2-custom.yaml``apiVersion: autoscaling``/``v2beta1  ``#从这可以看出是hpa v2版本``kind: HorizontalPodAutoscaler``metadata:``  ``name: myapp``-``hpa``-``v2``spec:``  ``scaleTargetRef: ``#根据什么指标来做评估压力``    ``apiVersion: apps``/``v1 ``#对谁来做自动扩展``    ``kind: Deployment``    ``name: myapp``  ``minReplicas: ``1` `#最少副本数量``  ``maxReplicas: ``10``  ``metrics: ``#表示依据哪些指标来进行评估``  ``-` `type``: Pods ``#表示基于资源进行评估``    ``pods:``      ``metricName: http_requests``#自定义的资源指标``        ``targetAverageValue: ``800m` `#m表示个数,表示并发数800`
+```
+
+　　关于并发数的hpa，具体镜像可以参考https://hub.docker.com/r/ikubernetes/metrics-app/
+
+参考：<https://www.cnblogs.com/dribs/p/10332957.html>
+
+
+
 ## 11.4  容器资源需求、资源限制及HeapSter
+
+
 
 # 12.Kubernetes运维指南
 
