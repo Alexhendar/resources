@@ -73,8 +73,8 @@ Kubernetes 特点
 - 分布式机密信息
 - 检查程序状态
 - 复制应用实例
-- 使用横向荚式自动缩放
-- 命名与发现
+- 使用横向自动缩放
+- 服务注册与发现
 - 负载均衡
 - 滚动更新
 - 资源监控
@@ -100,7 +100,7 @@ Kubernetes 不是传统的、全包容的平台即服务（Paas）系统。它�
 
 Kubernetes：
 
-- 并不限制支持的程序类型。它并不检测程序的框架 (例如，Wildfly)，也不限制运行时支持的语言集合 (比如， Java、Python、Ruby)，也不仅仅迎合 12 因子应用程序，也不区分 应用 与 服务 。Kubernetes 旨在支持尽可能多种类的工作负载，包括无状态的、有状态的和处理数据的工作负载。如果某程序在容器内运行良好，它在 Kubernetes 上只可能运行地更好。
+- 并不限制支持的程序类型。它并不检测程序的框架 (例如，Wildfly)，也不限制运行时支持的语言集合 (比如， Java、Python、Ruby)，也不仅仅迎合 12 因子应用程序(参考：<https://www.12factor.net/zh_cn/>)，也不区分 应用 与 服务 。Kubernetes 旨在支持尽可能多种类的工作负载，包括无状态的、有状态的和处理数据的工作负载。如果某程序在容器内运行良好，它在 Kubernetes 上只可能运行地更好。
 - 不提供中间件（例如消息总线）、数据处理框架（例如 Spark）、数据库（例如 mysql），也不把集群存储系统（例如 Ceph）作为内置服务。但是以上程序都可以在 Kubernetes 上运行。
 - 没有“点击即部署”这类的服务市场存在。
 - 不部署源代码，也不编译程序。持续集成 (CI) 工作流程是不同的用户和项目拥有其各自不同的需求和表现的地方。所以，Kubernetes 支持分层 CI 工作流程，却并不监听每层的工作状态。
@@ -122,6 +122,14 @@ Kubernetes：
 
 ## 2.1  Master
 
+要使用 Kubernetes，你需要用 *Kubernetes API 对象* 来描述集群的*预期状态（desired state）* ：包括你需要运行的应用或者负载，它们使用的镜像、副本数，以及所需网络和磁盘资源等等。你可以使用命令行工具 `kubectl` 来调用 Kubernetes API 创建对象，通过所创建的这些对象来配置预期状态。你也可以直接调用 Kubernetes API 和集群进行交互，设置或者修改预期状态。
+
+一旦你设置了你所需的目标状态，*Kubernetes 控制面（control plane）* 会促成集群的当前状态符合其预期状态。为此，Kubernetes 会自动执行各类任务，比如运行或者重启容器、调整给定应用的副本数等等。Kubernetes 控制面由一组运行在集群上的进程组成：
+
+- **Kubernetes 主控组件（Master）** 包含三个进程，都运行在集群中的某个节上，通常这个节点被称为 master 节点。
+
+
+
 k8s的控制节点扮演者整个调度和管理的角色，所以是非常关键的一部分。k8s的master节点主要包含三个部分： 
 
 1. **kube-apiserver** 提供了统一的资源操作入口; 
@@ -131,11 +139,31 @@ k8s的控制节点扮演者整个调度和管理的角色，所以是非常关�
 kube-scheduler、kube-controller-manager 和 kube-apiserver 三者的功能紧密相关； 
 同时只能有一个 kube-scheduler、kube-controller-manager 进程处于工作状态，如果运行多个，则需要通过选举产生一个 leader；
 
+
+
+## Kubernetes 控制面
+
+关于 Kubernetes 控制平面的各个部分，（如 Kubernetes 主控组件和 kubelet 进程，管理着 Kubernetes 如何与你的集群进行通信。控制平面维护着系统中所有的 Kubernetes 对象的状态记录，并且通过连续的控制循环来管理这些对象的状态。在任一的给定时间点，控制面的控制环都能响应集群中的变化，并且让系统中所有对象的实际状态与你提供的预期状态相匹配。
+
+比如， 当你通过 Kubernetes API 创建一个 Deployment 对象，你就为系统增加了一个新的目标状态。Kubernetes 控制平面记录着对象的创建，并启动必要的应用然后将它们调度至集群某个节点上来执行你的指令，以此来保持集群的实际状态和目标状态的匹配。
+
+Kubernetes集群提供了类似REST API的集，通过Kubernetes API server对外进行暴露，支持持久化资源的增删改查操作。这些API作为控制面板的枢纽。
+
+遵循Kubernetes API约定(路径约定、标准元数据等)的REST API能够自动从共享API服务(认证、授权、审计日志)中收益，通用客户端代码能够与它们进行交互。
+
+作为系统的最底层，需要支持必要的扩展机制，以支持高层添加功能。另外，需要支持单租户和多租户的应用场景。核心层也需要提供足够的弹性，以支持高层能扩展新的范围，而不需要在安全模式方面进行妥协。
+
+
+
 ## 2.2  Node
 
 ​	Node是Kubernetes中的工作节点，最开始被称为minion。一个Node可以是VM或物理机。每个Node（节点）具有运行[pod](http://docs.kubernetes.org.cn/312.html)的一些必要服务，并由Master组件进行管理，Node节点上的服务包括Docker、kubelet和kube-proxy。有关更多详细信息，请参考架构设计文档中的[“Kubernetes Node”](https://git.k8s.io/community/contributors/design-proposals/architecture.md#the-kubernetes-node)部分。
 
  **Node Status**
+
+```
+kubectl explain nodes.status
+```
 
 节点的状态信息包含：
 
@@ -155,11 +183,69 @@ kube-scheduler、kube-controller-manager 和 kube-apiserver 三者的功能紧�
 - ExternalIP：可以被集群外部路由到的IP。
 - InternalIP：只能在集群内进行路由的节点的IP地址。
 
+```
+ addresses:
+    - address: 10.30.5.33
+      type: InternalIP
+    - address: dev-node02
+      type: Hostname
+```
+
+
+
 ### Phase
 
 不推荐使用，已弃用。
 
+```
+kubectl gexplain nodes.status.phase
+KIND:     Node
+VERSION:  v1
+
+FIELD:    phase <string>
+
+DESCRIPTION:
+     NodePhase is the recently observed lifecycle phase of the node. More info:
+     https://kubernetes.io/docs/concepts/nodes/node/#phase The field is never
+     populated, and now is deprecated.
+```
+
+
+
 ### Condition
+
+```
+kubectl gexplain nodes.status.conditions
+KIND:     Node
+VERSION:  v1
+
+RESOURCE: conditions <[]Object>
+
+DESCRIPTION:
+     Conditions is an array of current observed node conditions. More info:
+     https://kubernetes.io/docs/concepts/nodes/node/#condition
+
+     NodeCondition contains condition information for a node.
+
+FIELDS:
+   lastHeartbeatTime    <string>
+     Last time we got an update on a given condition.
+
+   lastTransitionTime   <string>
+     Last time the condition transit from one status to another.
+
+   message      <string>
+     Human readable message indicating details about last transition.
+
+   reason       <string>
+     (brief) reason for the condition's last transition.
+
+   status       <string> -required-
+     Status of the condition, one of True, False, Unknown.
+
+   type <string> -required-
+     Type of node condition.
+```
 
 conditions字段描述所有Running节点的状态。
 
@@ -189,9 +275,74 @@ node condition被表示为一个JSON对象。例如，下面的响应描述了�
 
 描述节点上可用的资源：CPU、内存和可以调度到节点上的最大pod数。
 
-### Info
+```
+capacity:
+      cpu: "4"
+      ephemeral-storage: 515729368Ki
+      hugepages-2Mi: "0"
+      memory: 16267760Ki
+      pods: "110"
+```
+
+
+
+### nodeInfo
 
 关于节点的一些基础信息，如内核版本、Kubernetes版本（kubelet和kube-proxy版本）、Docker版本（如果有使用）、OS名称等。信息由Kubelet从节点收集。
+
+```
+kubectl explain nodes.status.nodeInfo
+KIND:     Node
+VERSION:  v1
+
+RESOURCE: nodeInfo <Object>
+
+DESCRIPTION:
+     Set of ids/uuids to uniquely identify the node. More info:
+     https://kubernetes.io/docs/concepts/nodes/node/#info
+
+     NodeSystemInfo is a set of ids/uuids to uniquely identify the node.
+
+FIELDS:
+   architecture <string> -required-
+     The Architecture reported by the node
+
+   bootID       <string> -required-
+     Boot ID reported by the node.
+
+   containerRuntimeVersion      <string> -required-
+     ContainerRuntime Version reported by the node through runtime remote API
+     (e.g. docker://1.5.0).
+
+   kernelVersion        <string> -required-
+     Kernel Version reported by the node from 'uname -r' (e.g.
+     3.16.0-0.bpo.4-amd64).
+
+   kubeProxyVersion     <string> -required-
+     KubeProxy Version reported by the node.
+
+   kubeletVersion       <string> -required-
+     Kubelet Version reported by the node.
+
+   machineID    <string> -required-
+     MachineID reported by the node. For unique machine identification in the
+     cluster this field is preferred. Learn more from man(5) machine-id:
+     http://man7.org/linux/man-pages/man5/machine-id.5.html
+
+   operatingSystem      <string> -required-
+     The Operating System reported by the node
+
+   osImage      <string> -required-
+     OS Image reported by the node from /etc/os-release (e.g. Debian GNU/Linux 7
+     (wheezy)).
+
+   systemUUID   <string> -required-
+     SystemUUID reported by the node. For unique machine identification
+     MachineID is preferred. This field is specific to Red Hat hosts
+     https://access.redhat.com/documentation/en-US/Red_Hat_Subscription_Management/1/html/RHSM/getting-system-uuid.html
+```
+
+
 
 ## Management
 
@@ -218,21 +369,71 @@ Kubernetes将在内部创建一个节点对象，并通过基于metadata.name字
 
 节点控制器（Node Controller）是管理节点的Kubernetes master组件。
 
-节点控制器在节点的生命周期中具有多个角色。第一个是在注册时将CIDR块分配给节点。
+节点控制器在节点的生命周期中具有多个角色。
+
+第一个是在注册时将CIDR块分配给节点。
 
 第二个是使节点控制器的内部列表与云提供商的可用机器列表保持最新。当在云环境中运行时，每当节点不健康时，节点控制器将询问云提供程序是否该节点的VM仍然可用，如果不可用，节点控制器会从其节点列表中删除该节点。
 
 第三是监测节点的健康状况。当节点变为不可访问时，节点控制器负责将NodeStatus的NodeReady条件更新为ConditionUnknown，随后从节点中卸载所有pod ，如果节点继续无法访问，（默认超时时间为40 --node-monitor-period秒，开始报告ConditionUnknown，之后为5m开始卸载）。节点控制器按每秒来检查每个节点的状态。
 
-在Kubernetes 1.4中，我们更新了节点控制器的逻辑，以更好地处理大量节点到达主节点的一些问题（例如，主节某些网络问题）。从1.4开始，节点控制器将在决定关于pod卸载的过程中会查看集群中所有节点的状态。
+在Kubernetes 1.4中，我们更新了节点控制器的逻辑，以更好地处理大量节点到达主节点的一些问题（例如，主节点某些网络问题）。从1.4开始，节点控制器将在决定关于pod卸载的过程中会查看集群中所有节点的状态。
 
-在大多数情况下，节点控制器将逐出速率限制为 --node-eviction-rate（默认为0.1）/秒，这意味着它不会每10秒从多于1个节点驱逐Pod。
+从触发模块的角度，`pod eviction` 可以分为两类：
 
-当给定可用性的区域中的节点变得不健康时，节点逐出行为发生变化，节点控制器同时检查区域中节点的不健康百分比（NodeReady条件为ConditionUnknown或ConditionFalse）。如果不健康节点的比例为 --unhealthy-zone-threshold（默认为0.55），那么驱逐速度就会降低：如果集群很小（即小于或等于--large-cluster-size-threshold节点 - 默认值为50），则停止驱逐，否则， --secondary-node-eviction-rate（默认为0.01）每秒。这些策略在可用性区域内实现的原因是，一个可用性区域可能会从主分区中被分区，而其他可用区域则保持连接。如果集群没有跨多个云提供商可用性区域，那么只有一个可用区域(整个集群)。
+- Kube-controller-manager: 周期性检查所有节点状态，当节点处于 NotReady 状态超过一段时间后，驱逐该节点上所有 pod。
+- Kubelet: 周期性检查本节点资源，当资源不足时，按照优先级驱逐部分 pod。
 
-在可用区域之间传播节点的一个主要原因是，当整个区域停止时，工作负载可以转移到健康区域。因此，如果区域中的所有节点都不健康，则节点控制器以正常速率逐出--node-eviction-rate。如所有的区域都是完全不健康的（即群集中没有健康的节点），在这种情况下，节点控制器会假设主连接有一些问题，并停止所有驱逐，直到某些连接恢复。
 
-从Kubernetes 1.6开始，节点控制器还负责驱逐在节点上运行的NoExecutepod。
+
+Kuberntes有个特色功能叫 pod eviction，它在某些场景下如节点 NotReady，资源不足时，把 pod 驱逐至其它节点。
+
+**Kube-controller-manger 发起的驱逐**
+
+Kube-controller-manager 周期性检查节点状态，每当节点状态为 NotReady，并且超出 podEvictionTimeout 时间后，就把该节点上的 pod 全部驱逐到其它节点，其中具体驱逐速度还受驱逐速度参数，集群大小等的影响。最常用的 2 个参数如下：
+
+- –pod-eviction-timeout：NotReady 状态节点超过该时间后，执行驱逐，默认 5 min。
+- –node-eviction-rate：驱逐速度，默认为 0.1 pod/
+
+当某个 zone 故障节点的数目超过一定阈值时，采用二级驱逐速度进行驱逐。
+
+- –large-cluster-size-threshold：判断集群是否为大集群，默认为 50，即 50 个节点以上的集群为大集群。
+- –unhealthy-zone-threshold：故障节点数比例，默认为 55%
+- –secondary-node-eviction-rate：当大集群的故障节点超过 55% 时，采用二级驱逐速率，默认为 0.01 pod／秒。当小集群故障节点超过 55% 时，驱逐速率为 0 pod／秒。
+
+**Kubelet 发起的驱逐**
+Kubelet 周期性检查本节点的内存和磁盘资源，当可用资源低于阈值时，则按照优先级驱逐 pod，具体检查的资源如下：
+
+memory.available
+nodefs.available
+nodefs.inodesFree
+imagefs.available
+imagefs.inodesFree
+以内存资源为例，当内存资源低于阈值时，驱逐的优先级大体为 BestEffort > Burstable > Guaranteed，具体的顺序可能因实际使用量有所调整。当发生驱逐时，kubelet 支持 soft 和 hard 两种模式，soft 模式表示缓期一段时间后驱逐，hard 模式表示立刻驱逐。
+
+**落地经验**
+对于 kubelet 发起的驱逐，往往是资源不足导致，它优先驱逐 BestEffort 类型的容器，这些容器多为离线批处理类业务，对可靠性要求低。驱逐后释放资源，减缓节点压力，弃卒保帅，保护了该节点的其它容器。无论是从其设计出发，还是实际使用情况，该特性非常 nice。
+
+对于由 kube-controller-manager 发起的驱逐，效果需要商榷。正常情况下，计算节点周期上报心跳给 master，如果心跳超时，则认为计算节点 NotReady，当 NotReady 状态达到一定时间后，kube-controller-manager 发起驱逐。然而造成心跳超时的场景非常多，例如：
+
+原生 bug：kubelet 进程彻底阻塞
+误操作：误把 kubelet 停止
+基础设施异常：如交换机故障演练，NTP 异常，DNS 异常
+节点故障：硬件损坏，掉电等
+从实际情况看，真正因计算节点故障造成心跳超时概率很低，反而由原生 bug，基础设施异常造成心跳超时的概率更大，造成不必要的驱逐。
+
+理想的情况下，驱逐对无状态且设计良好的业务方影响很小。但是并非所有的业务方都是无状态的，也并非所有的业务方都针对 Kubernetes 优化其业务逻辑。例如，对于有状态的业务，如果没有共享存储，异地重建后的 pod 完全丢失原有数据；即使数据不丢失，对于 Mysql 类的应用，如果出现双写，重则破坏数据。对于关心 IP 层的业务，异地重建后的 pod IP 往往会变化，虽然部分业务方可以利用 service 和 dns 来解决问题，但是引入了额外的模块和复杂性。
+
+除非满足如下需求，不然请尽量关闭 kube-controller-manager 的驱逐功能，即把驱逐的超时时间设置非常长，同时把一级／二级驱逐速度设置为 0。否则，非常容易就搞出大大小小的故障，血泪的教训。
+
+业务方要用正确的姿势使用容器，如数据与逻辑分离，无状态化，增强对异常处理等
+分布式存储
+可靠的 Service／DNS 服务或者保持异地重建后的 IP 不变
+通常情况下，从架构设计的角度来说，管理模块的不可用并不会影响已有的实例。例如：OpenStack 计算节点的服务异常，管理节点不会去变动该节点上已经运行虚拟机。但是 kubernetes 的 pod eviction 则打破了这种设计，出发点很新颖，但是落地时，需要充分的考虑业务方的特点，以及业务方的设计是否充分考虑了 kubernetes 的特色。
+
+参考：http://www.orchome.com/1252
+
+  
 
 ### Self-Registration of Nodes
 
@@ -360,7 +561,7 @@ pod模板类似cookie cutters。“一旦饼干被切掉，饼干和刀将没有
 
 ## 2.4  标签(Label)与标签选择器(Label Selector)
 
-Labels其实就一对 key/value ，被关联到对象上，标签的使用我们倾向于能够标示对象的特殊特点，并且对用户而言是有意义的（就是一眼就看出了这个Pod是尼玛数据库），但是标签对内核系统是没有直接意义的。标签可以用来划分特定组的对象（比如，所有女的），标签可以在创建一个对象的时候直接给与，也可以在后期随时修改，每一个对象可以拥有多个标签，但是，key值必须是唯一的
+Labels其实就一对 key/value ，被关联到对象上，标签的使用我们倾向于能够标示对象的特殊特点，并且对用户而言是有意义的（比如一眼就看出了这个Pod是数据库），但是标签对内核系统是没有直接意义的。标签可以用来划分特定组的对象（比如，所有女的），标签可以在创建一个对象的时候直接给与，也可以在后期随时修改，每一个对象可以拥有多个标签，但是，key值必须是唯一的
 
 ```
 "labels": {
@@ -399,7 +600,7 @@ Label其实是一对 key/value。有效的标签键有两个段：可选的前�
 
 通过标签选择器（Labels Selectors），客户端/用户 能方便辨识出一组对象。标签选择器是kubernetes中核心的组成部分。
 
-API目前支持两种选择器：equality-based（基于平等）和set-based（基于集合）的。标签选择器可以由逗号分隔的多个requirements 组成。在多重需求的情况下，必须满足所有要求，因此逗号分隔符作为AND逻辑运算符。
+API目前支持两种选择器：equality-based（基于相等）和set-based（基于集合）的。标签选择器可以由逗号分隔的多个requirements 组成。在多重需求的情况下，必须满足所有要求，因此逗号分隔符作为AND逻辑运算符。
 
 一个为空的标签选择器（即有0个必须条件的选择器）会选择集合中的每一个对象。
 
@@ -524,7 +725,7 @@ matchLabels 是一个{key,value}的映射。一个单独的 {key,value} 相当�
 
 ReplicationController（简称RC）是确保用户定义的Pod副本数保持不变。
 
-## ReplicationController 工作原理
+**ReplicationController 工作原理**
 
 在用户定义范围内，如果pod增多，则ReplicationController会终止额外的pod，如果减少，RC会创建新的pod，始终保持在定义范围。例如，RC会在Pod维护（例如内核升级）后在节点上重新创建新Pod。
 
@@ -1397,18 +1598,51 @@ Deployment revision history存储在它控制的ReplicaSets中。
 
 ## 2.7  HPA(Horizontal Pod Autoscaling )
 
-​	Horizontal Pod Autoscaler根据观察到的CPU利用率自动调整复制控制器，部署或副本集中的pod数量（或者，在beta支持的情况下，根据应用程序提供的其他指标）。
+参考：<https://blog.csdn.net/qq_17016649/article/details/79297796>
 
-​	需要在群集中部署[度量标准 - 服务器](https://github.com/kubernetes-incubator/metrics-server/)监控，以通过资源度量标准API提供度量标准，因为Horizontal Pod Autoscaler使用此API来收集度量标准。部署它的说明位于[metrics-server](https://github.com/kubernetes-incubator/metrics-server/)的GitHub存储库中，如果您[开始使用GCE指南](https://kubernetes.io/docs/setup/turnkey/gce/)，则默认情况下会启用metrics-server监控。
+云计算具有水平弹性的特性，这个是云计算区别于传统IT技术架构的主要特性。对于Kubernetes中的POD集群来说，HPA就是实现这种水平伸缩的控制器, 它能在当POD中业务负载上升的时候，创建新的POD来保证业务系统稳定运行，当POD中业务负载下降的时候，可以销毁POD来提高资源利用率。
 
-Horizontal Pod Autoscaling (HPA) 可以根据 CPU 使用率或应用自定义 metrics 自动扩
-展 Pod 数量（支持 replication controller、deployment 和 replica set ） 。
-控制管理器每隔 30s（可以通过 --horizontal-pod-autoscaler-sync-period
-修改） 查询 metrics 的资源使用情况
-支持三种 metrics 类型
-预定义 metrics（比如 Pod 的 CPU） 以利用率的方式计算
-自定义的 Pod metrics，以原始值（raw value） 的方式计算
-自定义的 object metrics
+HPA介绍
+Horizontal Pod Autoscaling，简称HPA，是Kubernetes中实现POD水平自动伸缩的功能。为什么要水平而不叫垂直, 那是因为自动扩展主要分为两种:
+
+水平扩展(scale out)，针对于实例数目的增减
+垂直扩展(scal up)，即单个实例可以使用的资源的增减, 比如增加cpu和增大内存 
+而HPA属于前者。它可以根据CPU使用率或应用自定义metrics自动扩展Pod数量(支持 replication controller、deployment 和 replica set)
+架构介绍
+--------------------- 
+​	![hpa](images/hpa.png)
+
+
+
+
+
+获取metrics的两种方式:
+
+Heapster: heapster提供metrics服务, 但是在v1(autoscaling/v1)版本中仅支持以CPU作为扩展度量指标, 而其他比如:内存, 网络流量, qps等目前处于beta阶段(autoscaling/v2beta1)
+Cousom: 同样处于beta阶段(autoscaling/v2beta1), 但是涉及到自定义的REST API的开发, 复杂度会大一些, 并且当需要从自定义的监控中获取数据时，只能设置绝对值，无法设置使用率
+工作流程:
+
+1.创建HPA资源，设定目标CPU使用率限额，以及最大、最小实例数, 一定要设置Pod的资源限制参数: request, 负责HPA不会工作。
+2.控制管理器每隔30s(可以通过–horizontal-pod-autoscaler-sync-period修改)查询metrics的资源使用情况
+3.然后与创建时设定的值和指标做对比(平均值之和/限额)，求出目标调整的实例个数
+4.目标调整的实例数不能超过1中设定的最大、最小实例数，如果没有超过，则扩容；超过，则扩容至最大的实例个数
+重复2-4步
+自动伸缩算法: 
+HPA Controller会通过调整副本数量使得CPU使用率尽量向期望值靠近，而且不是完全相等．另外，官方考虑到自动扩展的决策可能需要一段时间才会生效：例如当pod所需要的CPU负荷过大，从而在创建一个新pod的过程中，系统的CPU使用量可能会同样在有一个攀升的过程。所以，在每一次作出决策后的一段时间内，将不再进行扩展决策。对于扩容而言，这个时间段为3分钟，缩容为5分钟(可以通过--horizontal-pod-autoscaler-downscale-delay, --horizontal-pod-autoscaler-upscale-delay进行调整)。
+
+HPA Controller中有一个tolerance（容忍力）的概念，它允许一定范围内的使用量的不稳定，现在默认为0.1，这也是出于维护系统稳定性的考虑。例如，设定HPA调度策略为cpu使用率高于50%触发扩容，那么只有当使用率大于55%或者小于45%才会触发伸缩活动，HPA会尽力把Pod的使用率控制在这个范围之间。
+具体的每次扩容或者缩容的多少Pod的算法为: Ceil(前采集到的使用率 / 用户自定义的使用率) * Pod数量)
+
+每次最大扩容pod数量不会超过当前副本数量的2倍
+
+
+
+控制管理器每隔 30s（可以通过 --horizontal-pod-autoscaler-sync-period修改） 查询 metrics 的资源使用情况，支持三种 metrics 类型
+
+1. 预定义 metrics（比如 Pod 的 CPU） 以利用率的方式计算
+2. 自定义的 Pod metrics，以原始值（raw value） 的方式计算
+3. 自定义的 object metrics
+
 支持两种 metrics 查询方式：Heapster 和自定义的 REST API
 支持多 metrics
 注意：
@@ -1531,7 +1765,7 @@ spec:
 
 默认的策略是，通过 round-robin 算法来选择 backend Pod。 实现基于客户端 IP 的会话亲和性，可以通过设置 service.spec.sessionAffinity 的值为 "ClientIP" （默认值为 "None"）。
 
-![service-1](/images/service-1.jpg)
+![service-1](/images/service_userspace.png)
 
 ### iptables 代理模式
 
@@ -1541,7 +1775,26 @@ spec:
 
 和 userspace 代理类似，网络返回的结果是，任何到达 Service 的 IP:Port 的请求，都会被代理到一个合适的 backend，不需要客户端知道关于 Kubernetes、Service、或 Pod 的任何信息。 这应该比 userspace 代理更快、更可靠。然而，不像 userspace 代理，如果初始选择的 Pod 没有响应，iptables 代理能够自动地重试另一个 Pod，所以它需要依赖 [readiness probes](https://k8smeetup.github.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#defining-readiness-probes)。
 
-![services-iptables-overview](/images/services-iptables-overview.svg)
+![service_iptables](images/service_iptables.png)
+
+**IPVS 模式**
+
+这种模式，kube-proxy会监视Kubernetes service对象和Endpoints，调用netlink接口以相应地创建ipvs规则并定期与Kubernetes service对象和Endpoints对象同步ipvs规则，以确保ipvs状态与期望一致。访问服务时，流量将被重定向到其中一个后端Pod。
+
+与iptables类似，ipvs基于netfilter的hook功能，但使用哈希表作为底层数据结构并在内核空间中工作。这意味着ipvs可以更快地重定向流量，并且在同步代理规则时具有更好的性能。此外，ipvs为负载均衡算法提供了更多的选项，例如：
+
+- rr：轮询调度
+- lc：最小连接数
+- dh：目标哈希
+- sh：源哈希
+- sed：最短期望延迟
+- nq： 不排队调度
+
+**注意：** ipvs模式假定在运行kube-proxy之前在节点上都已经安装了IPVS内核模块。当kube-proxy以ipvs代理模式启动时，kube-proxy将验证节点上是否安装了IPVS模块，如果未安装，则kube-proxy将回退到iptables代理模式。
+
+![service_ipvs](images/service_ipvs.png)
+
+参考：<https://www.cnblogs.com/baishuchao/p/9429757.html>
 
 ## 多端口 Service
 
@@ -1581,6 +1834,8 @@ spec:
 我们尽力阻止用户做那些对他们没有好处的事情，如果很多人都来问这个问题，我们可能会选择实现它。
 
 ## 服务发现
+
+<https://www.jianshu.com/p/3749bf6aaabb>
 
 Kubernetes 支持2种基本的服务发现模式 —— 环境变量和 DNS。
 
@@ -1795,6 +2050,8 @@ Kubernetes 最主要的哲学之一，是用户不应该暴露那些能够导致
 
 
 ## 2.9  存储卷(Volume)
+
+参考：<https://www.cnblogs.com/linuxk/p/9760363.html>
 
 ​	默认情况下容器中的磁盘文件是非持久化的，对于运行在容器中的应用来说面临两个问题，第一：当容器挂掉kubelet将重启启动它时，文件将会丢失；第二：当[Pod](http://docs.kubernetes.org.cn/312.html)中同时运行多个容器，容器之间需要共享文件时。Kubernetes的Volume解决了这两个问题。
 
@@ -2368,6 +2625,19 @@ emptyDir Volume的存储介质（Disk，SSD等）取决于kubelet根目录（如
 
 
 ## 2.10  命名空间(NameSpace)
+
+你可以认为namespaces是你kubernetes集群中的虚拟化集群。在一个Kubernetes集群中可以拥有多个命名空间，它们在逻辑上彼此隔离。 他们可以为您和您的团队提供组织，安全甚至性能方面的帮助！
+
+“default” Namespace
+大多数的Kubernetes中的集群默认会有一个叫default的namespace。实际上，应该是3个：
+
+default：你的service和app默认被创建于此。
+kube-system：kubernetes系统组件使用。
+kube-public：公共资源使用。但实际上现在并不常用。
+
+这个默认（default）的namespace并没什么特别，但你不能删除它。这很适合刚刚开始使用kubernetes和一些小的产品系统。但不建议应用于大型生产系统。因为，这种复杂系统中，团队会非常容易意外地或者无意识地重写或者中断其他服务service。相反，请创建多个命名空间来把你的服务service分割成更容易管理的块。
+
+
 
 Kubernetes可以使用Namespaces（命名空间）创建多个虚拟集群。
 
@@ -3717,6 +3987,10 @@ emptyDir: {}
 
 ## 6.5  Pod 生命周期(~~调度约束~~)与重启策略
 
+可参考：<https://www.cnblogs.com/linuxk/p/9569618.html>
+
+参考：<https://blog.51cto.com/2032872/2332944?source=dra>
+
 > 我们在调度、管理 Pod 时，需要熟悉 Pod 在整个生命周期的各个状态，而设置 Pod 的重启策略也是基于对 Pod 的各种状态的了解。
 
 ### Pod 生命周期：
@@ -4666,25 +4940,31 @@ spec:
 
 ## 7.3  集群外部访问Service
 
-可以将 pod 的端口映射到宿主机, 或者将service映射到宿主机或loadbalancer
+参考：<http://www.voidcn.com/article/p-mtzdtitz-brq.html>
 
-### Ingress: HTTP 7层路由机制
+由于Pod和Service是kubernetes集群范围内的虚拟概念，所以集群外的客户端系统无法通过Pod的IP地址或者Service的虚拟IP地址和虚拟端口号访问到它们。为了让外部客户端能够访问到这些服务，可以将Pod或Service的端口号映射到宿主机。
 
-Service的表现形式为 IP:port,即工作在 TCP/IP 层.
+​    1.将容器应用的端口号映射到物理机
 
-而对于基于HTTP的服务来说,不同的URL地址经常对应到不同的后端服务或虚拟服务器
+​      1）设置容器级别的hostPort，将容器应用的端口号映射到物理机
 
-这些应用层的转发机制仅通过kubernetes的Service机制是无法实现的.
+​      2）设置Pod级别的hostNetwork=true，该Pod中所有容器的端口号都将被直接映射到物理机上
 
-所以从kubernetes v1.1 版本开始新增 Ingress 资源对象,用于将不同URL的访问请求转发到后端不同的Service
+​    2.将Service的端口号映射到物理机
 
-kubernetes使用个Ingress策略定义和一个具体的Ingress Controller,两者结合实现了一个完整的Ingress负责均衡器.
+​      1）设置nodePort映射到物理机，同时设置Service的类型为NodePort
 
-使用Ingress进行负载分发时, Ingress Controller将基于Ingress规则将客户端请求直接转发到Service对应的后端Endpoint(即Pod上), 这样会跳过 kube-proxy的转发功能, kube-proxy不再起作用.
+​      2）设置LoadBalancer映射到云服务商提供的LoadBalancer地址
 
-如果Ingress提供的是对外服务,则实际上实现的是边缘路由器的功能.
+​    如果设置了Service的nodePort，那么集群会在每一个节点都监听设置的nodePort，外部客户端可以通过任意nodeIP:Port的方式对集群服务进行访问。但是当集群中服务较多，那么需要管理的端口也会比较多，各个端口之间不能冲突，比较麻烦；另外，因为方式访问形式为nodeIP:Port的方式，那么对于一些HTTP服务，这种方式是无法做到根据URL路径进行转发的。ingress是kubernetes V1.1版本之后新增的资源对象，用于实现HTTP层业务路由机制。
 
-要使用Ingress,需要创建Ingress Controller(带一个默认backend服务)和Ingress策略设置 来共同完成.
+​    实现ingress路由机制主要包括3个组件：
+
+​      1）ingress是kubernetes的一个资源对象，用于编写定义规则
+
+​      2）反向代理负载均衡器，通常以Service的Port方式运行，接收并按照ingress定义的规则进行转发，通常为nginx，haproxy，traefik等，本文使用nginx
+
+​      3）ingress-controller，监听apiserver，获取服务新增，删除等变化，并结合ingress规则动态更新到反向代理负载均衡器上，并重载配置使其生效
 
 #### (1) 创建 Ingress Controller 和 默认的backend服务
 
@@ -5473,7 +5753,7 @@ Kubernetes集群提供了类似REST API的集，通过Kubernetes API server对�
 
 遵循Kubernetes API约定(路径约定、标准元数据等)的REST API能够自动从共享API服务(认证、授权、审计日志)中收益，通用客户端代码能够与它们进行交互。
 
-作为系统的最娣层，需要支持必要的扩展机制，以支持高层添加功能。另外，需要支持单租户和多租户的应用场景。核心层也需要提供足够的弹性，以支持高层能扩展新的范围，而不需要在安全模式方面进行妥协。
+作为系统的最底层，需要支持必要的扩展机制，以支持高层添加功能。另外，需要支持单租户和多租户的应用场景。核心层也需要提供足够的弹性，以支持高层能扩展新的范围，而不需要在安全模式方面进行妥协。
 
 如果没有下面这些基础的API机和语义，Kubernetes将不能够正常工作：
 
@@ -7160,9 +7440,897 @@ value-2
 
 ## 10.1  kubernetes认证及serviceaccount
 
-## 10.2  kubernetes RBAC
+<https://kubernetes.io/zh/docs/admin/service-accounts-admin/>
 
-## 10.3  kubernetes dashboard认证及分级授权
+## 用户账户与服务账户
+
+Kubernetes 区分用户账户和服务账户的概念主要基于以下原因：
+
+- 用户账户是针对人而言的。 服务账户是针对运行在pod中的进程而言的。
+- 用户账户是全局性的。 其名称在集群各namespace中都是全局唯一的，未来的用户资源不会做namespace隔离， 服务账户是namespace隔离的。
+- 通常情况下，集群的用户账户可能会从企业数据库进行同步，其创建需要特殊权限，并且涉及到复杂的业务流程。 服务账户创建的目的是为了更轻量，允许集群用户为了具体的任务创建服务账户 (即权限最小化原则)。
+- 对人员和服务账户审计所考虑的因素可能不同。
+- 针对复杂系统的配置可能包含系统组件相关的各种服务账户的定义。 因为服务账户可以定制化地创建，并且有namespace级别的名称，这种配置是很轻量的。
+
+## 服务账户的自动化
+
+三个独立组件协作完成服务账户相关的自动化:
+
+- 服务账户准入控制器（Service account admission controller）
+- Token控制器（Token controller）
+- 服务账户控制器（Service account controller）
+
+### 服务账户准入控制器
+
+对pod的改动通过一个被称为[Admission Controller](https://kubernetes.io/docs/admin/admission-controllers)的插件来实现。它是apiserver的一部分。 当pod被创建或更新时，它会同步地修改pod。 当该插件处于激活状态(在大多数发行版中都是默认的)，当pod被创建或更新时它会进行以下动作：
+
+1. 如果该pod没有 `ServiceAccount` 设置，将其 `ServiceAccount` 设为 `default`。
+2. 保证pod所关联的 `ServiceAccount` 存在，否则拒绝该pod。
+3. 如果pod不包含 `ImagePullSecrets`设置，那么 将 `ServiceAccount`中的`ImagePullSecrets` 信息添加到pod中。
+4. 将一个包含用于API访问的token的 `volume` 添加到pod中。
+5. 将挂载于 `/var/run/secrets/kubernetes.io/serviceaccount` 的 `volumeSource`添加到pod下的每个容器中。
+
+### Token管理器
+
+Token管理器是controller-manager的一部分。 以异步的形式工作：
+
+- 检测服务账户的创建，并且创建相应的Secret以支持API访问。
+- 检测服务账户的删除，并且删除所有相应的服务账户Token Secret。
+- 检测Secret的增加，保证相应的服务账户存在，如有需要，为Secret增加token。
+- 检测Secret的删除，如有需要，从相应的服务账户中移除引用。
+
+你需要通过 `--service-account-private-key-file` 参数项传入一个服务账户私钥文件至Token管理器。 私钥用于为生成的服务账户token签名。 同样地，你需要通过 `--service-account-key-file` 参数将对应的公钥传入kube-apiserver。 公钥用于认证过程中的token校验。
+
+#### 创建额外的 API tokens
+
+控制器中有专门的循环来保证每个服务账户中都存在API token对应的Secret。 当需要为服务账户创建额外的API token时，创建一个类型为 `ServiceAccountToken` 的Secret，并在annotation中引用服务账户，控制器会生成token并更新:
+
+secret.json:
+
+```json
+{
+    "kind": "Secret",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "mysecretname",
+        "annotations": {
+            "kubernetes.io/service-account.name": "myserviceaccount"
+        }
+    },
+    "type": "kubernetes.io/service-account-token"
+}
+kubectl create -f ./secret.json
+kubectl describe secret mysecretname
+```
+
+#### 删除/失效 服务账户token
+
+```shell
+kubectl delete secret mysecretname
+```
+
+### 服务账户管理器
+
+服务账户管理器管理各命名空间下的服务账户，并且保证每个活跃的命名空间下存在一个名为 “default” 的服务账户
+
+## 10.2 使用准入控制插件
+
+## 什么是准入控制插件？
+
+一个准入控制插件是一段代码，它会在请求通过认证和授权之后、对象被持久化之前拦截到达 API server 的请求。插件代码运行在 API server 进程中，必须将其编译为二进制文件，以便在此时使用。
+
+在每个请求被集群接受之前，准入控制插件依次执行。如果插件序列中任何一个拒绝了该请求，则整个请求将立即被拒绝并且返回一个错误给终端用户。
+
+准入控制插件可能会在某些情况下改变传入的对象，从而应用系统配置的默认值。另外，作为请求处理的一部分，准入控制插件可能会对相关的资源进行变更，以实现类似增加配额使用量这样的功能。
+
+## 为什么需要准入控制插件？
+
+Kubernetes 的许多高级功能都要求启用一个准入控制插件，以便正确地支持该特性。因此，一个没有正确配置准入控制插件的 Kubernetes API server 是不完整的，它不会支持您所期望的所有特性。
+
+## 如何启用一个准入控制插件？
+
+Kubernetes API server 支持一个标志参数 `admission-control` ，它指定了一个用于在集群修改对象之前调用的以逗号分隔的准入控制插件顺序列表。
+
+## 每个插件的功能是什么？
+
+### AlwaysAdmit
+
+使用这个插件自行通过所有的请求。
+
+### AlwaysPullImages
+
+这个插件修改每一个新创建的 Pod 的镜像拉取策略为 Always 。这在多租户集群中是有用的，这样用户就可以放心，他们的私有镜像只能被那些有凭证的人使用。没有这个插件，一旦镜像被拉取到节点上，任何用户的 pod 都可以通过已了解到的镜像的名称（假设 pod 被调度到正确的节点上）来使用它，而不需要对镜像进行任何授权检查。当启用这个插件时，总是在启动容器之前拉取镜像，这意味着需要有效的凭证。
+
+### AlwaysDeny
+
+拒绝所有的请求。用于测试。
+
+### DenyExecOnPrivileged （已废弃）
+
+如果一个 pod 拥有一个特权容器，这个插件将拦截所有在该 pod 中执行 exec 命令的请求。
+
+如果集群支持特权容器，并且希望限制最终用户在这些容器中执行 exec 命令的能力，我们强烈建议启用这个插件。
+
+此功能已合并到 [DenyEscalatingExec](https://kubernetes.io/zh/docs/reference/access-authn-authz/admission-controllers/#denyescalatingexec)。
+
+### DenyEscalatingExec
+
+这个插件将拒绝在拥有衍生特权而具备访问宿主机能力的 pod 中执行 exec 和 attach 命令。这包括在特权模式运行的 pod ，可以访问主机 IPC 命名空间的 pod ，和访问主机 PID 命名空间的 pod 。
+
+如果集群支持使用以衍生特权运行的容器，并且希望限制最终用户在这些容器中执行 exec 命令的能力，我们强烈建议启用这个插件。
+
+### ImagePolicyWebhook
+
+ImagePolicyWebhook 插件允许使用一个后端的 webhook 做出准入决策。您可以按照如下配置 admission-control 选项来启用这个插件:
+
+```shell
+--admission-control=ImagePolicyWebhook
+```
+
+#### 配置文件格式
+
+ImagePolicyWebhook 插件使用了admission config 文件 `--admission-control-config-file` 来为后端行为设置配置选项。该文件可以是 json 或 yaml ，并具有以下格式:
+
+```javascript
+{
+  "imagePolicy": {
+     "kubeConfigFile": "path/to/kubeconfig/for/backend",
+     "allowTTL": 50,           // time in s to cache approval
+     "denyTTL": 50,            // time in s to cache denial
+     "retryBackoff": 500,      // time in ms to wait between retries
+     "defaultAllow": true      // determines behavior if the webhook backend fails
+  }
+}
+```
+
+这个配置文件必须引用一个 [kubeconfig](https://kubernetes.io/docs/concepts/cluster-administration/authenticate-across-clusters-kubeconfig/) 格式的文件，并在其中配置指向后端的连接。且需要在 TLS 上与后端进行通信。
+
+kubeconfig 文件的 cluster 字段需要指向远端服务，user 字段需要包含已返回的授权者。
+
+```yaml
+# clusters refers to the remote service.
+clusters:
+- name: name-of-remote-imagepolicy-service
+  cluster:
+    certificate-authority: /path/to/ca.pem    # CA for verifying the remote service.
+    server: https://images.example.com/policy # URL of remote service to query. Must use 'https'.
+
+# users refers to the API server's webhook configuration.
+users:
+- name: name-of-api-server
+  user:
+    client-certificate: /path/to/cert.pem # cert for the webhook plugin to use
+    client-key: /path/to/key.pem          # key matching the cert
+```
+
+对于更多的 HTTP 配置，请参阅 [kubeconfig](https://kubernetes.io/docs/concepts/cluster-administration/authenticate-across-clusters-kubeconfig/) 文档。
+
+#### 请求载荷
+
+当面对一个准入决策时，API server 发送一个描述操作的 JSON 序列化的 api.imagepolicy.v1alpha1.ImageReview 对象。该对象包含描述被审核容器的字段，以及所有匹配 `*.image-policy.k8s.io/*` 的 pod 注释。
+
+注意，webhook API 对象与其他 Kubernetes API 对象一样受制于相同的版本控制兼容性规则。实现者应该知道对 alpha 对象的更宽松的兼容性，并检查请求的 “apiVersion” 字段，以确保正确的反序列化。此外，API server 必须启用 imagepolicy.k8s.io/v1alpha1 API 扩展组 (`--runtime-config=imagepolicy.k8s.io/v1alpha1=true`)。
+
+请求载荷例子：
+
+```
+{  
+  "apiVersion":"imagepolicy.k8s.io/v1alpha1",
+  "kind":"ImageReview",
+  "spec":{  
+    "containers":[  
+      {  
+        "image":"myrepo/myimage:v1"
+      },
+      {  
+        "image":"myrepo/myimage@sha256:beb6bd6a68f114c1dc2ea4b28db81bdf91de202a9014972bec5e4d9171d90ed"
+      }
+    ],
+    "annotations":[  
+      "mycluster.image-policy.k8s.io/ticket-1234": "break-glass"
+    ],
+    "namespace":"mynamespace"
+  }
+}
+```
+
+远程服务将填充请求的 ImageReviewStatus 字段，并返回允许或不允许访问。响应主体的 “spec” 字段会被忽略，并且可以省略。一个允许访问应答会返回：
+
+```
+{
+  "apiVersion": "imagepolicy.k8s.io/v1alpha1",
+  "kind": "ImageReview",
+  "status": {
+    "allowed": true
+  }
+}
+```
+
+不允许访问，服务将返回：
+
+```
+{
+  "apiVersion": "imagepolicy.k8s.io/v1alpha1",
+  "kind": "ImageReview",
+  "status": {
+    "allowed": false,
+    "reason": "image currently blacklisted"
+  }
+}
+```
+
+更多的文档，请参阅 `imagepolicy.v1alpha1` API 对象 和 `plugin/pkg/admission/imagepolicy/admission.go`。
+
+使用注解进行扩展
+
+一个 pod 中匹配 `*.image-policy.k8s.io/*` 的注解都会被发送给 webhook。这允许了解镜像策略后端的用户向它发送额外的信息，并为不同的后端实现接收不同的信息。
+
+您可以在这里输入的信息有：
+
+- 在紧急情况下，请求 “break glass” 覆盖一个策略。 <!–
+- a ticket number from a ticket system that documents the break-glass request –>
+- 从一个记录了 break-glass 的请求的票证系统得到的一个票证编号 <!–
+- provide a hint to the policy server as to the imageID of the image being provided, to save it a lookup –>
+- 向策略服务器提供一个提示，用于提供镜像的 imageID，以方便它进行查找
+
+在任何情况下，注解都是由用户提供的，并不会被 Kubernetes 以任何方式进行验证。在将来，如果一个注解确定将被广泛使用，它可能会被提升为 ImageReviewSpec 的一个命名字段。
+
+### ServiceAccount
+
+这个插件实现了 [serviceAccounts](https://kubernetes.io/docs/user-guide/service-accounts) 的自动化。 如果您打算使用 Kubernetes 的 ServiceAccount 对象，我们强烈建议您使用这个插件。
+
+### SecurityContextDeny
+
+该插件将拒绝任何试图设置特定扩展 [SecurityContext](https://kubernetes.io/docs/user-guide/security-context) 字段的 pod。如果集群没有使用 [pod 安全策略](https://kubernetes.io/docs/user-guide/pod-security-policy) 来限制安全上下文所能获取的值集，那么应该启用这个功能。
+
+### ResourceQuota
+
+此插件将观察传入的请求，并确保它不违反任何一个 `Namespace` 中的 `ResourceQuota` 对象中枚举出来的约束。如果您在 Kubernetes 部署中使用了 `ResourceQuota` ，您必须使用这个插件来强制执行配额限制。
+
+请查看 [resourceQuota 设计文档](https://git.k8s.io/community/contributors/design-proposals/admission_control_resource_quota.md) 和 [Resource Quota 例子](https://kubernetes.io/docs/concepts/policy/resource-quotas/) 了解更多细节。
+
+强烈建议将这个插件配置在准入控制插件序列的末尾。这样配额就不会过早地增加，只会在稍后的准入控制中被拒绝。
+
+### LimitRanger
+
+这个插件将观察传入的请求，并确保它不会违反 `Namespace` 中 `LimitRange` 对象枚举的任何约束。如果您在 Kubernetes 部署中使用了 `LimitRange` 对象，则必须使用此插件来执行这些约束。LimitRanger 插件还可以用于将默认资源请求应用到没有指定任何内容的 Pod ；当前，默认的 LimitRanger 对 `default` 命名空间中的所有 pod 应用了0.1 CPU 的需求。
+
+请查看 [limitRange 设计文档](https://git.k8s.io/community/contributors/design-proposals/admission_control_limit_range.md) 和 [Limit Range 例子](https://kubernetes.io/docs/tasks/configure-pod-container/limit-range/) 了解更多细节。
+
+### InitialResources （试验）
+
+此插件观察 pod 创建请求。如果容器忽略了 requests 和 limits 计算资源，那么插件就会根据运行相同镜像的容器的历史使用记录来自动填充计算资源请求。如果没有足够的数据进行决策，则请求将保持不变。当插件设置了一个计算资源请求时，它会用它自动填充的计算资源对 pod 进行注解。
+
+请查看 [InitialResouces 建议书](https://git.k8s.io/community/contributors/design-proposals/initial-resources.md) 了解更多细节。
+
+### NamespaceLifecycle
+
+这个插件强制不能在一个正在被终止的 `Namespace` 中创建新对象，和确保使用不存在 `Namespace` 的请求被拒绝。
+
+删除 `Namespace` 触发了在该命名空间中删除所有对象（ pod 、 services 等）的一系列操作。为了确保这个过程的完整性，我们强烈建议启用这个插件。
+
+### DefaultStorageClass
+
+这个插件观察不指定 storage class 字段的 `PersistentVolumeClaim` 对象的创建，并自动向它们添加默认的 storage class 。这样，不指定 storage class 字段的用户根本无需关心它们，它们将得到默认的 storage class 。
+
+当没有配置默认 storage class 时，这个插件不会执行任何操作。当一个以上的 storage class 被标记为默认时，它拒绝 `PersistentVolumeClaim` 创建并返回一个错误，管理员必须重新检查 `StorageClass` 对象，并且只标记一个作为默认值。这个插件忽略了任何 `PersistentVolumeClaim` 更新，它只对创建起作用。
+
+查看 [persistent volume](https://kubernetes.io/docs/user-guide/persistent-volumes) 文档了解 persistent volume claims 和 storage classes 并了解如何将一个 storage classes 标志为默认。
+
+### DefaultTolerationSeconds
+
+这个插件设置了 pod 默认的宽恕容忍时间，对于那些没有设置宽恕容忍时间的 pod ，可以容忍 `notready:NoExecute` 和 `unreachable:NoExecute` 这些 taint 5分钟。
+
+### PodNodeSelector
+
+通过读取命名空间注释和全局配置,这个插件默认并限制了在一个命名空间中使用什么节点选择器。
+
+#### 配置文件格式
+
+PodNodeSelector 插件使用准入配置文件 `--admission-control-config-file` 来设置后端行为的配置选项。
+
+请注意，配置文件格式将在未来版本中移至版本化文件。
+
+这个文件可能是 json 或 yaml ，格式如下：
+
+```yaml
+podNodeSelectorPluginConfig:
+ clusterDefaultNodeSelector: <node-selectors-labels>
+ namespace1: <node-selectors-labels>
+ namespace2: <node-selectors-labels>
+```
+
+#### 配置注解格式
+
+PodNodeSelector 插件使用键为 `scheduler.alpha.kubernetes.io/node-selector` 的注解将节点选择器分配给 namespace 。
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    scheduler.alpha.kubernetes.io/node-selector: <node-selectors-labels>
+  name: namespace3
+```
+
+### PodSecurityPolicy
+
+此插件负责在创建和修改 pod 时根据请求的安全上下文和可用的 pod 安全策略确定是否应该通过 pod。
+
+对于 Kubernetes < 1.6.0 的版本，API Server 必须启用 extensions/v1beta1/podsecuritypolicy API 扩展组 (`--runtime-config=extensions/v1beta1/podsecuritypolicy=true`)。
+
+查看 [Pod 安全策略文档](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) 了解更多细节。
+
+### NodeRestriction
+
+这个插件限制了 kubelet 可以修改的 `Node` 和 `Pod` 对象。 为了受到这个入场插件的限制，kubelet 必须在 `system：nodes` 组中使用凭证，并使用 `system：node：<nodeName>` 形式的用户名。这样的 kubelet 只允许修改自己的 `Node` API 对象，只能修改绑定到节点本身的 `Pod` 对象。 未来的版本可能会添加额外的限制，以确保 kubelet 具有正确操作所需的最小权限集。
+
+## 是否有推荐的一组插件可供使用？
+
+有。 对于 Kubernetes >= 1.6.0 版本，我们强烈建议运行以下一系列准入控制插件（顺序也很重要）
+
+```shell
+--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds
+```
+
+对于 Kubernetes >= 1.4.0 版本，我们强烈建议运行以下一系列准入控制插件（顺序也很重要）
+
+```shell
+--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
+```
+
+对于 Kubernetes >= 1.2.0 版本，我们强烈建议运行以下一系列准入控制插件（顺序也很重要）
+
+```shell
+--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota
+```
+
+对于 Kubernetes >= 1.0.0 版本，我们强烈建议运行以下一系列准入控制插件（顺序也很重要）
+
+```shell
+--admission-control=NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,PersistentVolumeLabel,ResourceQuota
+```
+
+## 10.3  kubernetes RBAC
+
+## 概述
+
+Kuberntes中API Server的访问控制过程图示如下：
+
+[![access-control-overview](https://blog.frognew.com/images/2017/04/access-control-overview.png)](https://blog.frognew.com/images/2017/04/access-control-overview.png)
+
+在Kubernetes中，授权(authorization)是在认证(authentication)之后的一个步骤。 授权就是决定一个用户(普通用户或ServiceAccount)是否有权请求Kubernetes API做某些事情。
+
+之前，Kubernetes中的授权策略主要是ABAC(Attribute-Based Access Control)。 对于ABAC，Kubernetes在实现上是比较难用的，而且需要Master Node的SSH和根文件系统访问权限，授权策略发生变化后还需要重启API Server。
+
+Kubernetes 1.6中，RBAC(Role-Based Access Control)基于角色的访问控制进入Beta阶段。RBAC访问控制策略可以使用kubectl或Kubernetes API进行配置。 使用RBAC可以直接授权给用户，让用户拥有授权管理的权限，这样就不再需要直接触碰Master Node。 在Kubernetes中RBAC被映射成API资源和操作。
+
+## RBAC API的资源对象
+
+在Kubernetes 1.6中通过启动参数`--authorization-mode=RBAC. API Overview`为API Server启用RBAC。
+
+使用kubeadm初始化的1.6版本的Kubernetes集群，已经默认为API Server开启了RBAC，可以查看Master Node上API Server的静态Pod定义文件：
+
+```
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep RBAC
+    - --authorization-mode=RBAC
+```
+
+RBAC API定义了四个资源对象用于描述RBAC中用户和资源之间的连接权限：
+
+- Role
+- ClusterRole
+- RoleBinding
+- ClusterRoleBinding
+
+### Role和ClusterRole
+
+Role是一系列权限的集合。Role是定义在某个Namespace下的资源，在这个具体的Namespace下使用。 ClusterRole与Role相似，只是ClusterRole是整个集群范围内使用的。
+
+下面我们使用kubectl打印一下Kubernetes集群中的Role和ClusterRole：
+
+```
+kubectl get roles --all-namespaces
+NAMESPACE     NAME                                        AGE
+kube-public   system:bootstrap-signer-clusterinfo         6d
+kube-public   system:controller:bootstrap-signer          6d
+kube-system   extension-apiserver-authentication-reader   6d
+kube-system   system:controller:bootstrap-signer          6d
+kube-system   system:controller:token-cleaner             6d
+```
+
+```
+kubectl get ClusterRoles
+NAME                                           AGE
+admin                                          6d
+cluster-admin                                  6d
+edit                                           6d
+flannel                                        5d
+system:auth-delegator                          6d
+system:basic-user                              6d
+system:controller:attachdetach-controller      6d
+......
+system:kube-aggregator                         6d
+system:kube-controller-manager                 6d
+system:kube-dns                                6d
+system:kube-scheduler                          6d
+system:node                                    6d
+system:node-bootstrapper                       6d
+system:node-problem-detector                   6d
+system:node-proxier                            6d
+system:persistent-volume-provisioner           6d
+view                                           6d
+```
+
+可以看到之前创建的这个Kubernetes集群中已经内置或创建很多的Role和ClusterRole。
+
+下面在default命名空间内创建一个名称为pod-reader的Role，role-pord-reader.yaml文件如下：
+
+```
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+```
+
+```
+kubectl create -f role-pord-reader.yaml
+role "pod-reader" created
+
+kubectl get roles
+NAME         AGE
+pod-reader   1m
+```
+
+注意RBAC在Kubernetes 1.6还处于Beta阶段，所以API归属在`rbac.authorization.k8s.io`，上面的`apiVersion`为`rbac.authorization.k8s.io/v1beta1`。
+
+下面再给一个ClusterRole的定义文件：
+
+```
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+```
+
+### RoleBinding和ClusterRoleBinding
+
+RoleBinding把Role绑定到账户主体Subject，让Subject继承Role所在namespace下的权限。 ClusterRoleBinding把ClusterRole绑定到Subject，让Subject集成ClusterRole在整个集群中的权限。
+
+账户主体Subject在这里还是叫“用户”吧，包含组group，用户user和ServiceAccount。
+
+```
+kubectl get rolebinding --all-namespaces
+NAMESPACE     NAME                                   AGE
+kube-public   kubeadm:bootstrap-signer-clusterinfo   6d
+kube-public   system:controller:bootstrap-signer     6d
+kube-system   system:controller:bootstrap-signer     6d
+kube-system   system:controller:token-cleaner        6d
+```
+
+实际上一个RoleBinding既可以引用相同namespace下的Role；又可以引用一个ClusterRole，RoleBinding引用ClusterRole时用户继承的权限会被限制在RoleBinding所在的namespace下。
+
+```
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+- kind: User
+  name: jane
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+```
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: read-secrets
+  namespace: development # This only grants permissions within the "development" namespace.
+subjects:
+- kind: User
+  name: dave
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+## Kubernetes中默认的Role和RoleBinding
+
+API Server已经创建一系列ClusterRole和ClusterRoleBinding。这些资源对象中名称以`system:`开头的，表示这个资源对象属于Kubernetes系统基础设施。 也就说RBAC默认的集群角色已经完成足够的覆盖，让集群可以完全在 RBAC的管理下运行。 修改这些资源对象可能会引起未知的后果，例如对于`system:node`这个ClusterRole定义了kubelet进程的权限，如果这个角色被修改，可能导致kubelet无法工作。
+
+可以使用`kubernetes.io/bootstrapping=rbac-defaults`这个label查看默认的ClusterRole和ClusterRoleBinding：
+
+```
+kubectl get clusterrole -l kubernetes.io/bootstrapping=rbac-defaults
+NAME                                           AGE
+admin                                          6d
+cluster-admin                                  6d
+edit                                           6d
+system:auth-delegator                          6d
+system:basic-user                              6d
+system:controller:attachdetach-controller      6d
+system:controller:certificate-controller       6d
+......
+system:node-problem-detector                   6d
+system:node-proxier                            6d
+system:persistent-volume-provisioner           6d
+view                                           6d
+```
+
+```
+kubectl get clusterrolebinding -l kubernetes.io/bootstrapping=rbac-defaults
+NAME                                           AGE
+cluster-admin                                  6d
+system:basic-user                              6d
+system:controller:attachdetach-controller      6d
+system:controller:certificate-controller       6d
+system:controller:cronjob-controller           6d
+system:controller:daemon-set-controller        6d
+system:controller:deployment-controller        6d
+......
+system:discovery                               6d
+system:kube-controller-manager                 6d
+system:kube-dns                                6d
+system:kube-scheduler                          6d
+system:node                                    6d
+system:node-proxier                            6d
+```
+
+关于这些角色详细的权限信息可以查看[Default Roles and Role Bindings](https://kubernetes.io/docs/admin/authorization/rbac/#default-roles-and-role-bindings)
+
+参考：<https://blog.frognew.com/2017/04/kubernetes-1.6-rbac.html>
+
+
+
+## 10.4  kubernetes dashboard认证及分级授权
+
+参考：<https://www.cnblogs.com/panwenbin-logs/p/10052554.html>
+
+### 第一章、部署dashboard
+
+```
+作为Kubernetes的Web用户界面，用户可以通过Dashboard在Kubernetes集群中部署容器化的应用，对应用进行问题处理和管理，并对集群本身进行管理。通过Dashboard，用户可以查看集群中应用的运行情况，同时也能够基于Dashboard创建或修改部署、任务、服务等Kubernetes的资源。通过部署向导，用户能够对部署进行扩缩容，进行滚动更新、重启Pod和部署新应用。
+```
+
+**项目地址：https://github.com/kubernetes/dashboard，根据项目中的介绍，我们自己在线安装即可，但是实际上我们国内用户无法自己安装，需要下载后修改文件才能使用**
+
+**下载yaml文件**
+
+```
+[root@k8s-master01 manifests]# mkdir dashboard^C
+[root@k8s-master01 manifests]# cd dashboard/
+[root@k8s-master01 dashboard]# wget  https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+```
+
+修改yaml文件中镜像的地址及service的类型
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202104559816-817595713.png)
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202104727393-1368655718.png)
+
+**修改完成后，应用yaml文件**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@k8s-master01 dashboard]# kubectl apply -f kubernetes-dashboard.yaml 
+serviceaccount "kubernetes-dashboard" unchanged
+role.rbac.authorization.k8s.io "kubernetes-dashboard-minimal" unchanged
+rolebinding.rbac.authorization.k8s.io "kubernetes-dashboard-minimal" unchanged
+deployment.apps "kubernetes-dashboard" configured
+service "kubernetes-dashboard" configured
+[root@k8s-master01 dashboard]# kubectl get pod -n kube-system   #dashborad存在于kube-system名称空间中
+NAME                                    READY     STATUS    RESTARTS   AGE
+......
+kubernetes-dashboard-7b689d867f-f67hm   1/1       Running   0          27s
+[root@k8s-master01 dashboard]# kubectl get svc -n kube-system  #查看service和端口是否开启
+NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)         AGE
+......
+kubernetes-dashboard   NodePort    10.101.22.15   <none>        443:32333/TCP   13m
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**通过masterIP:port进行访问，正常应该会出现下面的界面**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202104957932-747211865.png)
+
+**从界面中可以看到访问dashboard需要通过config或者token授权才能登陆，但是dashboard本身不提供授权，因为dashborad是一个pod，实际上我们是使用这个pod认证到k8s的集群中去的，我们需要为dashborad的pod提供config或者token认证，所以这里的认证主体应该是serviceaccount**
+
+**如果出现以下界面**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202105243737-1611913.png)
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202105307894-1191410367.png)
+
+**这是因为yaml文件中创建secret有问题，我们需要手动创建一个证书来进行认证，下面我们创建一个证书**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@k8s-master01 dashboard]# cd /etc/kubernetes/pki/
+[root@k8s-master01 pki]# (umask 077; openssl genrsa -out dashboard.key 2048)  #创建一个证书
+Generating RSA private key, 2048 bit long modulus
+............................................................................................+++
+.............+++
+e is 65537 (0x10001)
+[root@k8s-master01 pki]# openssl req -new -key dashboard.key -out dashboard.csr -subj "/O=qiangungun/CN=kubernetes-dashboard"    #建立证书的签署请求
+[root@k8s-master01 pki]# openssl x509 -req -in dashboard.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out dashboard.crt -days 3650 #使用集群的ca来签署证书
+Signature ok
+subject=/O=qiangungun/CN=kubernetes-dashboard
+Getting CA Private Key
+[root@k8s-master01 pki]# kubectl create secret generic kubernetes-dashboard-certs --from-file=dashboard.crt=./dashboard.crt --from-file=dashboard.key=./dashboard.key  -n kube-system  #我们需要把我们创建的证书创建为secret给k8s使用
+secret "kubernetes-dashboard-certs" created
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**注释dashborad yaml文件中secret的配置**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202110817099-567876207.png)
+
+**重新应用yaml文件**
+
+```
+[root@k8s-master01 dashboard]# kubectl delete  -f kubernetes-dashboard.yaml 
+[root@k8s-master01 dashboard]# kubectl apply  -f kubernetes-dashboard.yaml 
+```
+
+**再次访问应该就正常了**
+
+### 第二章、创建以token方式登录dashborad的用户
+
+#### 1.创建具有集群管理权限的用户登录dashborad
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@k8s-master01 dashboard]# kubectl create serviceaccount dashboard-admin -n kube-system #创建用于登录dashborad的serviceaccount账号
+serviceaccount "dashboard-admin" created
+[root@k8s-master01 dashboard]# kubectl create clusterrolebinding dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin   #创建一个clusterrolebingding，将名称为cluster-admin的clusterrole绑定到我们刚刚从的serviceaccount上，名称空间和sa使用:作为间隔
+clusterrolebinding.rbac.authorization.k8s.io "dashboard-cluster-admin" created   
+[root@k8s-master01 dashboard]# kubectl get secret -n kube-system #创建完成后系统会自动创建一个secret，名称以serviceaccount名称开头
+NAME                                             TYPE                                  DATA      AGE
+......
+dashboard-admin-token-pbsj9                      kubernetes.io/service-account-token   3         4m
+.....
+[root@k8s-master01 dashboard]# kubectl describe secret dashboard-admin-token-pbsj9 -n kube-system  #使用describe查看该secret的详细信息，主要是token一段
+Name:         dashboard-admin-token-pbsj9
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  kubernetes.io/service-account.name=dashboard-admin
+              kubernetes.io/service-account.uid=b24fb2eb-f5e1-11e8-8969-5254001b07db
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkYXNoYm9hcmQtYWRtaW4tdG9rZW4tcGJzajkiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGFzaGJvYXJkLWFkbWluIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiYjI0ZmIyZWItZjVlMS0xMWU4LTg5NjktNTI1NDAwMWIwN2RiIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmRhc2hib2FyZC1hZG1pbiJ9.jDtIZFrcAPkr71pSStWm1AD4_gJM9A4JeYics3Nxs0hm2NQSCgL_pAIlVlSiHELmn3TLasOcvy8SljQnZQJcLKSkP-ubSBe8IkzXJkBr3SOhEr6eHb1ZDHXtC9bx58QH6PEOnO3hwoUaEtcIMuzC8ULbMp5f4TCvZ5mSKL_WPwaVJgZZDteUBPOsZHfcfIyatjXOWZBhiWbD3UZIN47ghpZl6BdXVeqLT5ua8Z8G0qtRD-DoDiQOaQ5Z9nKo_yluyb5cLJgpAtAl9i4Df7exHgVRnPETk1fbnxCDTGYlEgmLKFU6tRCEKl5Q66O9TICpdJIeT4sUBJxDSFVScPNFrA
+ca.crt:     1025 bytes
+namespace:  11 bytes
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**复制secret中的token，来访问dashborad**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202113325953-1615524893.png)
+
+**选择令牌，并粘贴刚刚复制的token，点击登录**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202113641908-1064249082.png)
+
+**可以看到，可以管理集群中的所有资源**
+
+#### 2、创建具有指定名称空间管理权限的用户登录dashborad
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@k8s-master01 dashboard]# kubectl create serviceaccount default-ns-admin -n default #再次创建一个serviceaccount，指定名称空间为default
+serviceaccount "default-ns-admin" created
+[root@k8s-master01 dashboard]# kubectl create rolebinding default-ns-admin --clusterrole=admin --serviceaccount=default:default-ns-admin #使用rolebinding绑定clusterrole用户admin到刚刚创建的serviceaccount上
+rolebinding.rbac.authorization.k8s.io "default-ns-admin" created
+[root@k8s-master01 dashboard]# kubectl get secret 
+NAME                           TYPE                                  DATA      AGE
+......
+default-ns-admin-token-26xgs   kubernetes.io/service-account-token   3         2m
+......
+[root@k8s-master01 dashboard]# kubectl describe secret default-ns-admin-token-26xgs 
+Name:         default-ns-admin-token-26xgs
+Namespace:    default
+Labels:       <none>
+Annotations:  kubernetes.io/service-account.name=default-ns-admin
+              kubernetes.io/service-account.uid=b13f19e9-f5ec-11e8-8969-5254001b07db
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+ca.crt:     1025 bytes
+namespace:  7 bytes
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtbnMtYWRtaW4tdG9rZW4tMjZ4Z3MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdC1ucy1hZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImIxM2YxOWU5LWY1ZWMtMTFlOC04OTY5LTUyNTQwMDFiMDdkYiIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQtbnMtYWRtaW4ifQ.T1TsD-SyHDgpMMLWk75TFtYxOzc6SQcUHD4FsNEEjx6p48G9smBoh7fO6_y9NIvZKCjIGvzKt-ZUhRg7Oxk6vL2JIODe2apQQQBYyIzzW2y1ZFSICPpEHs0FYwt84RsUefGLLfEq0BrGa22mV58UfcttSMZN9LAUuWYe_1UX81F9neAuknKO78BNzif854SFOLvOaqOqNfMSiXs8Fi3vWPLi8_QFihObrC_FkDBhzc62zYtXzpH8T7gzadfAIexLpX7__RmcY8Cuaf7XvRh-zn3SAcmwo8v2ydtwOwTOtPA-6gEXGSM2UfR-rZ0WloPCIvGonej8fbNgH8G9sT2KTg
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**使用此token登录dashborad**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202124749441-1777854073.png)
+
+**可以看到，出来default名称空间之外，无法看到其他名称空间了**
+
+### 第三章、创建以config方式登录dashborad的用户
+
+**为了方面我们直接使用刚刚创建的serviceaccount的token作为认证信息**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@k8s-master01 dashboard]# cd /etc/kubernetes/pki/
+[root@k8s-master01 pki]# kubectl config set-cluster kubernetes --certificate-authority=./ca.crt --server="https://172.16.150.212:6443" --embed-certs=true --kubeconfig=/root/def-ns-admin.conf  #新建一个cluster，名称为kubernetes，使用当前集群的ca进行认证，并指定kubeconfig文件位置
+Cluster "kubernetes" set.
+[root@k8s-master01 pki]# kubectl config view --kubeconfig=/root/def-ns-admin.conf  #查看创建信息
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: REDACTED
+    server: https://172.16.150.212:6443
+  name: kubernetes
+contexts: []
+current-context: ""
+kind: Config
+preferences: {}
+users: []
+[root@k8s-master01 pki]# cd 
+[root@k8s-master01 ~]# kubectl get secret 
+[root@k8s-master01 ~]# DEF_NS_ADMIN_TOKEN=$(kubectl get secret default-ns-admin-token-26xgs -o jsonpath={.data.token}|base64 -d) #k8s生成的token为base64加密，所有需要使用base64进行解密
+[root@k8s-master01 ~]# kubectl config set-credentials def-ns-admin --token=$DEF_NS_ADMIN_TOKEN --kubeconfig=/root/def-ns-admin.conf #创建一个serviceaccount的用户
+User "def-ns-admin" set.
+[root@k8s-master01 manifests]# kubectl config view --kubeconfig=/root/def-ns-admin.conf 
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: REDACTED
+    server: https://172.16.150.212:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: def-ns-admin
+  name: def-ns-admin@kubernetes
+current-context: ""
+kind: Config
+preferences: {}
+users:
+- name: def-ns-admin
+  user:
+    token: eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtbnMtYWRtaW4tdG9rZW4tMjZ4Z3MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdC1ucy1hZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImIxM2YxOWU5LWY1ZWMtMTFlOC04OTY5LTUyNTQwMDFiMDdkYiIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQtbnMtYWRtaW4ifQ.T1TsD-SyHDgpMMLWk75TFtYxOzc6SQcUHD4FsNEEjx6p48G9smBoh7fO6_y9NIvZKCjIGvzKt-ZUhRg7Oxk6vL2JIODe2apQQQBYyIzzW2y1ZFSICPpEHs0FYwt84RsUefGLLfEq0BrGa22mV58UfcttSMZN9LAUuWYe_1UX81F9neAuknKO78BNzif854SFOLvOaqOqNfMSiXs8Fi3vWPLi8_QFihObrC_FkDBhzc62zYtXzpH8T7gzadfAIexLpX7__RmcY8Cuaf7XvRh-zn3SAcmwo8v2ydtwOwTOtPA-6gEXGSM2UfR-rZ0WloPCIvGonej8fbNgH8G9sT2KTg
+[root@k8s-master01 manifests]# kubectl config use-context def-ns-admin@kubernetes --kubeconfig=/root/def-ns-admin.conf #设置当前serviceaccount的上下文
+Switched to context "def-ns-admin@kubernetes".
+[root@k8s-master01 manifests]# kubectl config view --kubeconfig=/root/def-ns-admin.conf 
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: REDACTED
+    server: https://172.16.150.212:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: def-ns-admin
+  name: def-ns-admin@kubernetes
+current-context: def-ns-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: def-ns-admin
+  user:
+    token: eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtbnMtYWRtaW4tdG9rZW4tMjZ4Z3MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdC1ucy1hZG1pbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImIxM2YxOWU5LWY1ZWMtMTFlOC04OTY5LTUyNTQwMDFiMDdkYiIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQtbnMtYWRtaW4ifQ.T1TsD-SyHDgpMMLWk75TFtYxOzc6SQcUHD4FsNEEjx6p48G9smBoh7fO6_y9NIvZKCjIGvzKt-ZUhRg7Oxk6vL2JIODe2apQQQBYyIzzW2y1ZFSICPpEHs0FYwt84RsUefGLLfEq0BrGa22mV58UfcttSMZN9LAUuWYe_1UX81F9neAuknKO78BNzif854SFOLvOaqOqNfMSiXs8Fi3vWPLi8_QFihObrC_FkDBhzc62zYtXzpH8T7gzadfAIexLpX7__RmcY8Cuaf7XvRh-zn3SAcmwo8v2ydtwOwTOtPA-6gEXGSM2UfR-rZ0WloPCIvGonej8fbNgH8G9sT2KTg
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**导出/root/def-ns-admin.conf到客户端上，并选择kubeconfig方式登录，点击选择文件即可**
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202131503951-1818092118.png)
+
+![img](https://img2018.cnblogs.com/blog/911490/201812/911490-20181202131519204-1782551273.png)
+
+**没有问题，登录成功**
+
+### 第四章、Dashboard使用
+
+**1 、Dashboard提供的功能**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+在默认情况下，Dashboard显示默认(default)命名空间下的对象，也可以通过命名空间选择器选择其他的命名空间。在Dashboard用户界面中能够显示集群大部分的对象类型。
+
+1）集群管理
+集群管理视图用于对节点、命名空间、持久化存储卷、角色和存储类进行管理。 节点视图显示CPU和内存的使用情况，以及此节点的创建时间和运行状态。 命名空间视图会显示集群中存在哪些命名空间，以及这些命名空间的运行状态。角色视图以列表形式展示集群中存在哪些角色，这些角色的类型和所在的命名空间。 持久化存储卷以列表的方式进行展示，可以看到每一个持久化存储卷的存储总量、访问模式、使用状态等信息；管理员也能够删除和编辑持久化存储卷的YAML文件。
+
+2） 工作负载
+工作负载视图显示部署、副本集、有状态副本集等所有的工作负载类型。在此视图中，各种工作负载会按照各自的类型进行组织。 工作负载的详细信息视图能够显示应用的详细信息和状态信息，以及对象之间的关系。
+
+3） 服务发现和负载均衡
+服务发现视图能够将集群内容的服务暴露给集群外的应用，集群内外的应用可以通过暴露的服务调用应用，外部的应用使用外部的端点，内部的应用使用内部端点。
+
+4） 存储
+存储视图显示被应用用来存储数据的持久化存储卷申明资源。
+
+5） 配置
+配置视图显示集群中应用运行时所使用配置信息，Kubernetes提供了配置字典（ConfigMaps）和秘密字典（Secrets），通过配置视图，能够编辑和管理配置对象，以及查看隐藏的敏感信息。
+
+6） 日志视图
+Pod列表和详细信息页面提供了查看日志视图的链接，通过日志视图不但能够查看Pod的日志信息，也能够查看Pod容器的日志信息。通过Dashboard能够根据向导创建和部署一个容器化的应用，当然也可以通过手工的方式输入指定应用信息，或者通过上传YAML和JSON文件来创建和不受应用。
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**2 、部署应用**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+1）手动创建应用
+通过向导创建和部署容器化应用时，需要提供如下的一些信息：
+应用名称（App name 必需）： 需要部署的应用的名称。带有此值的标签将会被添加至部署和服务中。在当前的Kubernetes命名空间中，应用名称必须是唯一的。同时，应用名称必须以小写字母开头，以小写字母和数字结尾，可以包含字母、数字和“-”。名称最长为24个字母。
+容器组个数（Number of pods 必需）： 希望部署的容器组数量。值必须为整数。
+描述（Description）： 对于应用的描述，将被添加至部署的注释中，并在应用详细信息中显示。
+标签（Labels）： 应用的默认标签为应用的名称和版本。可以指定其它的标签，这些标签将会被应用至部署、服务、容器组等资源中。
+命名空间（Namespace）：在同一个物理集群中，Kubernetes支持多个虚拟集群。这些虚拟集群被称为命名空间，通过命名空间可以将资源进行逻辑上的划分。通过下列菜单可以选择已有的命名空间，当然也可以创建新的命名空间。命名空间的名称最大的字符数为63，名词可以使用字母、数字“-”，不能包含大写字母，同时也不能全部使用数字。
+镜像拉取保密字典（Image Pull Secret）： 如果Docker容器镜像是私有的，则有可能需要保密证书。Dashboard通过下拉菜单提供了所有的可用的保密凭证，也允许创建新的保密字典。保密字典名称必须遵循DNS域名语法，例如：new.image-pull.secret。保密字典的内容必须使用基于base64进行加密的，并在.dockercfg文件中进行指定。保密字典名称最长不能超过253个字符。
+环境变量（Environment variables）： Kubernetes通过环境变量暴露服务， 可以创建环境变量或者使用环境变量的值将参数传递给命令。环境变量能够被应用用来发现服务，环境变量的值可以通过￥（VAR_NAME）语法被其它变量引用。
+
+2）上传YAML或JSON文件创建应用
+通过编译工具编写容器化应用的YAML和JSON文件，在Dashboard用户界面中通过上传文件创建和部署应用。
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+### 部署步骤简单总结：
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+1、部署：
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+2、将Service改为NodePort
+kubectl patch svc kubernetes-dashboard -p '{"spec":{"type":"NodePort"}}' -n kube-system
+3、认证：
+认证时的账号必须为ServiceAccount：被dashboard pod拿来由kubernetes进行认证；
+    token:
+        （1）创建ServiceAccount，根据其管理目标，使用rolebinding或clusterrolebinding绑定至合理role或clusterrole;
+        （2）获取到此ServiceAccount的secret，查看secret的详细信息，其中就有token；
+    kubeconfig: 把ServiceAccount的token封装为kubeconfig文件
+        （1）创建ServiceAccount，根据其管理目标，使用rolebinding或clusterrolebinding绑定至合理role或clusterrole;         
+        （2）kubectl get secret | awk '/^ServiceAccount/{print $1}'
+             KUBE_TOKEN=$(kubectl get secret SERVCIEACCOUNT_SERRET_NAME -o jsonpath={.data.token} |base64 -d)
+        （3）生成kubeconfig文件
+            kubectl config set-cluster --kubeconfig=/PATH/TO/SOMEFILE
+            kubectl config set-credentials NAME --token=$KUBE_TOKEN --kubeconfig=/PATH/TO/SOMEFILE kubectl config set-context
+            kubectl config use-context
+```
 
 # 11 kubernetes调度
 
@@ -8354,7 +9522,406 @@ subjects:
 
 ## 11.4  容器资源需求、资源限制及HeapSter
 
+**一、容器资源需求、资源限制**
 
+资源需求、资源限制：指的是cpu、内存等资源；
+
+资源需求、资源限制的两个关键字：
+
+- request：需求，最低保障，在调度时，这个节点必须要满足request需求的资源大小；
+- limits：限制、硬限制。这个限制容器无论怎么运行都不会超过limits的值；
+
+CPU：k8s的一个cpu对应一颗宿主机逻辑cpu。一个逻辑cpu还可以划分为1000个毫核（millcores）。所以1cpu=1000m；500m=0.5个CPU，0.5m相当于二分之一的核心；
+
+内存的计量单位：E、P、T、G、M、K
+
+```
+[root@master ~]# kubectl explain pods.spec.containers.resources
+[root@master ~]# kubectl explain pods.spec.containers.resources.requests
+[root@master ~]# kubectl explain pods.spec.containers.resources.limits
+```
+
+用法参考：<https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/>
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@master metrics]# pwd
+/root/manifests/metrics
+[root@master metrics]# vim pod-demo.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-demo
+  labels:
+    app: myapp
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/stress-ng
+    command: ["/usr/bin/stress-ng", "-c 1", "--metrics-brief"]       #-c 1表示启动一个子进程对cpu做压测.默认stress-ng的一个子进程使用256M内存
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+
+#创建pod
+[root@master metrics]# kubectl apply -f pod-demo.yaml 
+pod/pod-demo created
+
+[root@master metrics]# kubectl get pods
+NAME       READY   STATUS    RESTARTS   AGE
+pod-demo   1/1     Running   0          6s
+
+[root@master metrics]# kubectl exec pod-demo -- top
+Mem: 1378192K used, 487116K free, 12540K shrd, 2108K buff, 818184K cached
+CPU:  26% usr   1% sys   0% nic  71% idle   0% io   0% irq   0% sirq
+Load average: 0.78 0.96 0.50 2/479 11
+  PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+    6     1 root     R     6884   0%   1  26% {stress-ng-cpu} /usr/bin/stress-ng
+    7     0 root     R     1504   0%   0   0% top
+    1     0 root     S     6244   0%   1   0% /usr/bin/stress-ng -c 1 --metrics-
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+我们对容器分配了资源限制后，k8s会自动分配一个QoS，叫服务质量，通过kubectl describe pods pod_name可以查看这个字段；
+
+```
+[root@master metrics]# kubectl describe pods pod-demo |grep QoS
+QoS Class:       Burstable
+```
+
+QoS可以分为三类(根据资源设置，自动归类)：
+
+- Guranteed：表示每个容器的cpu和内存资源设置了相同的requests和limits值，即cpu.requests=cpu.limits和memory.requests=memory.limits，Guranteed会确保这类pod有最高的优先级，会被优先运行的，即使节点上的资源不够用；
+- Burstable:表示pod中至少有一个容器设置了cpu或内存资源的requests属性，可能没有定义limits属性，那么这类pod具有中等优先级；
+- BestEffort：指没有任何一个容器设置了requests或者limits属性，那么这类pod是最低优先级。当这类pod的资源不够用时，BestEffort中的容器会被优先终止，以便腾出资源来，给另外两类pod中的容器正常运行；
+
+ 
+
+**二、HeapSter**
+
+**1、介绍**
+
+HeapSter的作用是收集个节点pod的资源使用情况，然后以图形界面展示给用户。
+
+[![image](https://img2018.cnblogs.com/blog/1190780/201903/1190780-20190325162908760-1963104393.png)](https://img2018.cnblogs.com/blog/1190780/201903/1190780-20190325162908125-1541852228.png)
+
+kubelet中的cAdvisor负责收集每个节点上的资源使用情况，然后把信息存储HeapSter中，HeapSter再把数据持久化的存储在数据库InfluxDB中。然后我们再通过非常优秀的Grafana来图形化展示；
+
+一般我们监控的指标包括k8s集群的系统指标、容器指标和应用指标。
+
+默认InfluxDB使用的是存储卷是emptyDir，容器一关数据就没了，所以我们生产要换成glusterfs等存储卷才行。
+
+ 
+
+**2、部署influxdb**：
+
+InfluxDB github：<https://github.com/kubernetes-retired/heapster>
+
+在node节点上先拉取镜像：
+
+```
+#node01
+[root@node01 ~]# docker pull fishchen/heapster-influxdb-amd64:v1.5.2
+
+#node02
+[root@node02 ~]# docker pull fishchen/heapster-influxdb-amd64:v1.5.2
+```
+
+在master节点上，拉取yaml文件，并修改、执行：
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+[root@master metrics]# wget https://raw.githubusercontent.com/kubernetes-retired/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
+
+[root@master metrics]# vim influxdb.yaml
+apiVersion: apps/v1        #此处不修改也可以，如果改成apps/v1，要加下面 selector那几行
+kind: Deployment
+metadata:
+  name: monitoring-influxdb
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:            #加此行
+    matchLabels:        #加此行
+      task: monitoring        #加此行
+      k8s-app: influxdb    #加此行
+  template:
+    metadata:
+      labels:
+        task: monitoring
+        k8s-app: influxdb
+    spec:
+      containers:
+      - name: influxdb
+        image: fishchen/heapster-influxdb-amd64:v1.5.2    #修改此处镜像地址    
+        volumeMounts:
+        - mountPath: /data
+          name: influxdb-storage
+      volumes:
+      - name: influxdb-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    task: monitoring
+    # For use as a Cluster add-on (https://github.com/kubernetes/kubernetes/tree/master/cluster/addons)
+    # If you are NOT using this as an addon, you should comment out this line.
+    kubernetes.io/cluster-service: 'true'
+    kubernetes.io/name: monitoring-influxdb
+  name: monitoring-influxdb
+  namespace: kube-system
+spec:
+  ports:
+  - port: 8086
+    targetPort: 8086
+  selector:
+    k8s-app: influxdb
+
+#创建资源
+[root@master metrics]# kubectl apply -f influxdb.yaml 
+deployment.apps/monitoring-influxdb created
+service/monitoring-influxdb created
+
+#查看
+[root@master metrics]# kubectl get pods -n kube-system |grep influxdb
+monitoring-influxdb-5899b7fff9-2r58w    1/1     Running   0          6m59s
+
+[root@master metrics]# kubectl get svc -n kube-system |grep influxdb
+monitoring-influxdb    ClusterIP   10.101.242.217   <none>        8086/TCP        7m6s
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**3、部署rbac**
+
+下面我们开始部署heapster，但heapster依赖rbac，所以我们先部署rbac：
+
+```
+[root@master metrics]# wget https://raw.githubusercontent.com/kubernetes-retired/heapster/master/deploy/kube-config/rbac/heapster-rbac.yaml
+
+[root@master metrics]# kubectl apply -f heapster-rbac.yaml 
+clusterrolebinding.rbac.authorization.k8s.io/heapster created
+```
+
+**4、部署heapster**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+#node01拉取镜像
+[root@node01 ~]# docker pull rancher/heapster-amd64:v1.5.4
+
+#node02拉取镜像
+[root@node02 ~]# docker pull rancher/heapster-amd64:v1.5.4
+
+#master拉取yaml文件
+[root@master metrics]# wget https://raw.githubusercontent.com/kubernetes-retired/heapster/master/deploy/kube-config/influxdb/heapster.yaml
+
+[root@master metrics]# vim heapster.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: heapster
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heapster
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      task: monitoring
+      k8s-app: heapster
+  template:
+    metadata:
+      labels:
+        task: monitoring
+        k8s-app: heapster
+    spec:
+      serviceAccountName: heapster
+      containers:
+      - name: heapster
+        image: rancher/heapster-amd64:v1.5.4    #修改此处镜像地址
+        imagePullPolicy: IfNotPresent
+        command:
+        - /heapster
+        - --source=kubernetes:https://kubernetes.default
+        - --sink=influxdb:http://monitoring-influxdb.kube-system.svc:8086
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    task: monitoring
+    # For use as a Cluster add-on (https://github.com/kubernetes/kubernetes/tree/master/cluster/addons)
+    # If you are NOT using this as an addon, you should comment out this line.
+    kubernetes.io/cluster-service: 'true'
+    kubernetes.io/name: Heapster
+  name: heapster
+  namespace: kube-system
+spec:
+  ports:
+  - port: 80
+    targetPort: 8082
+  type: NodePort        #我添加了此行，
+  selector:
+    k8s-app: heapster
+
+#创建
+[root@master metrics]# kubectl apply -f heapster.yaml 
+serviceaccount/heapster created
+deployment.apps/heapster created
+
+#查看
+[root@master metrics]# kubectl get pods -n kube-system |grep heapster-
+heapster-7c8f7dc8cb-kph29               1/1     Running   0          3m55s
+[root@master metrics]# 
+[root@master metrics]# kubectl get svc -n kube-system |grep heapster
+heapster               NodePort    10.111.93.84     <none>        80:31410/TCP    4m16s    #由于用了NodePort，所以pod端口映射到了节点31410端口上
+
+#查看pod日志
+[root@master metrics]# kubectl  logs heapster-7c8f7dc8cb-kph29 -n kube-system
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+**5、部署Grafana**
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+```
+#node01拉取镜像
+[root@node01 ~]# docker pull angelnu/heapster-grafana:v5.0.4
+
+#node02拉取镜像
+[root@node02 ~]# docker pull angelnu/heapster-grafana:v5.0.4
+
+#master拉取yaml文件
+[root@master metrics]# wget https://raw.githubusercontent.com/kubernetes-retired/heapster/master/deploy/kube-config/influxdb/grafana.yaml
+
+#编辑yaml文件
+[root@master metrics]# vim grafana.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-grafana
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      task: monitoring
+      k8s-app: grafana
+
+  template:
+    metadata:
+      labels:
+        task: monitoring
+        k8s-app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: angelnu/heapster-grafana:v5.0.4    #修改镜像地址
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/ssl/certs
+          name: ca-certificates
+          readOnly: true
+        - mountPath: /var
+          name: grafana-storage
+        env:
+        - name: INFLUXDB_HOST
+          value: monitoring-influxdb
+        - name: GF_SERVER_HTTP_PORT
+          value: "3000"
+          # The following env variables are required to make Grafana accessible via
+          # the kubernetes api-server proxy. On production clusters, we recommend
+          # removing these env variables, setup auth for grafana, and expose the grafana
+          # service using a LoadBalancer or a public IP.
+        - name: GF_AUTH_BASIC_ENABLED
+          value: "false"
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "true"
+        - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          value: Admin
+        - name: GF_SERVER_ROOT_URL
+          # If you're only using the API Server proxy, set this value instead:
+          # value: /api/v1/namespaces/kube-system/services/monitoring-grafana/proxy
+          value: /
+      volumes:
+      - name: ca-certificates
+        hostPath:
+          path: /etc/ssl/certs
+      - name: grafana-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    # For use as a Cluster add-on (https://github.com/kubernetes/kubernetes/tree/master/cluster/addons)
+    # If you are NOT using this as an addon, you should comment out this line.
+    kubernetes.io/cluster-service: 'true'
+    kubernetes.io/name: monitoring-grafana
+  name: monitoring-grafana
+  namespace: kube-system
+spec:
+  # In a production setup, we recommend accessing Grafana through an external Loadbalancer
+  # or through a public IP.
+  # type: LoadBalancer
+  # You could also use NodePort to expose the service at a randomly-generated port
+  # type: NodePort
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: NodePort        #为了能在集群外部访问Grafana，所以我们需要定义NodePort
+  selector:
+    k8s-app: grafana
+
+
+#创建
+[root@master metrics]# kubectl apply -f grafana.yaml 
+deployment.apps/monitoring-grafana created
+service/monitoring-grafana created
+
+#查看
+[root@master metrics]# kubectl get pods -n kube-system |grep grafana
+monitoring-grafana-84786758cc-7txwr     1/1     Running   0          3m47s
+
+[root@master metrics]# kubectl get svc -n kube-system |grep grafana
+monitoring-grafana     NodePort    10.102.42.86     <none>        80:31404/TCP    3m55s    #可见pod的端口映射到了node上的31404端口上
+```
+
+[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+pod的端口已经映射到了node上的31404端口上；
+
+此时，在集群外部，用浏览器访问：[http://ip:31404](http://ip:31404/)
+
+如下图：
+
+[![image](https://img2018.cnblogs.com/blog/1190780/201903/1190780-20190325162909321-1962597975.png)](https://img2018.cnblogs.com/blog/1190780/201903/1190780-20190325162909035-259232262.png)
+
+但是如何使用，可能还需要进一步学习influxbd、grafana等；
+
+最后，HeapSter可能快被废除了…
+
+新型的监控系统比如有：Prometheus(普罗米修斯)
 
 # 12.Kubernetes运维指南
 
