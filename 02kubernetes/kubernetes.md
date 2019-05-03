@@ -2842,7 +2842,7 @@ deployment "nginx-deployment" created
 
 # Flannel的工作原理
 
-flannel是CoreOS提供用于解决Dokcer集群跨主机通讯的覆盖网络工具。它的主要思路是：预先留出一个网段，每个主机使用其中一部分，然后每个容器被分配不同的ip；让所有的容器认为大家在同一个直连的网络，底层通过`UDP/VxLAN`等进行报文的封装和转发。
+flannel是CoreOS提供用于解决Dokcer集群跨主机通讯的覆盖网络工具。它的主要思路是：预先留出一个网段，每个主机使用其中一部分，然后每个容器被分配不同的ip；让所有的容器认为大家在同一个直连的网络，底层通过`UDP/VxLAN`等进行报文的封装和转发。它基于Linux TUN/TAP，使用UDP封装IP包来创建overlay网络，并借助etcd维护网络的分配情况
 
 flannel项目地址：<https://github.com/coreos/flannel>
 
@@ -2864,6 +2864,10 @@ flannel默认使用8285端口作为`UDP`封装报文的端口，VxLan使用8472�
 8. 数据被解包，然后发送给`flannel0`虚拟网卡。
 9. 查找路由表，发现对应容器的报文要交给`docker0`。
 10. `docker0`找到连到自己的容器，把报文发送过去。
+
+## VXLAN
+
+将源数据包封装到UDP中，并使用基础网络的IP/MAC作为外层报文头进行封装，然后在以太网上传输，到达目的地后由隧道端点解封装并将数据发送给目标地址。
 
 
 

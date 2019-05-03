@@ -1,5 +1,5 @@
 {
-  "insecure-registries":["harbor.nantong.com:9001","https://rf2etq8b.mirror.aliyuncs.com"],
+  "insecure-registries":["harbor.io", "k8s.gcr.io", "gcr.io", "quay.io"],
   "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "json-file",
   "log-opts": {

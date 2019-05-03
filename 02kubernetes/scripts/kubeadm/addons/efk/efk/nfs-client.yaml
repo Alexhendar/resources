@@ -1,0 +1,34 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: nfs-client-provisioner
+ # namespace: kube-logging
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+      serviceAccountName: nfs-client-provisioner
+      containers:
+        - name: nfs-client-provisioner
+          image: quay.io/external_storage/nfs-client-provisioner:latest
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: lihui.pri/nfs
+            - name: NFS_SERVER
+              value: 172.20.20.164
+            - name: NFS_PATH
+              value: /work/efk_nfs_data
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: 172.20.20.164
+            path: /work/efk_nfs_data
+         

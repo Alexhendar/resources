@@ -21,7 +21,7 @@ kubectl create -f elasticsearch_svc.yaml
   4.1 搭建nfs服务器
       vim /etc/exports
 			/work/efk_nfs_data 172.20.20.0/24(rw,no_root_squash,no_all_squash,sync)
-			mkdir /work/efk_nfs_data
+			mkdir -p /work/efk_nfs_data
 			mkdir /work/efk_nfs_data/0
 			mkdir /work/efk_nfs_data/1
 			mkdir /work/efk_nfs_data/2
@@ -29,6 +29,8 @@ kubectl create -f elasticsearch_svc.yaml
 	    exportfs -r
 			systemctl start rpcbind
 			systemctl restart nfs
+			mount -t nfs 172.20.20.164:/work/efk_nfs_data/ /work/efk_nfs_data/  挂载
+			showmount -e 172.20.20.74  查看
   4.2 为ES集群存储搭建动态PV
   		1.创建Provisioner自动配置程序
   			通过已创建的NFS服务器来自动创建持久卷
@@ -53,5 +55,6 @@ kubectl create -f elasticsearch_svc.yaml
       kubectl create -f fluentd.yaml
 			kubectl get ds --namespace=kube-logging
 7.浏览
+			查看es索引：curl -X GET 'http://192.168.2.177:31001/_cat/indices?v'
       kubectl port-forward kibana-5d4b79fd45-d8qz2 5601:5601 --namespace=kube-logging
       

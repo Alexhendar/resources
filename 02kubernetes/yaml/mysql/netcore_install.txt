@@ -1,0 +1,38 @@
+0、修改systemd配置
+vim /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+在Environment=添加
+--cgroup-driver=systemd
+
+重启docker和kubelet
+
+systemctl restart docker
+systemctl daemon-reload && systemctl restart kubelet
+
+
+1、创建NFS环境
+n1上执行
+	mkdir -p /data/nfs/mysql
+vim /etc/exports
+	/data/nfs/mysql 172.20.20.0/24(rw,no_root_squash,no_all_squash,sync)
+exportfs -r
+#systemctl start rpcbind
+systemctl restart nfs
+验证配置
+	showmount -e 172.20.20.74
+输出结果为	Export list for 172.20.20.74:
+		/data/nfs/mysql 172.20.20.0/24
+表示配置正确
+
+2、创建PV
+kubectl apply -f /root/scripts/mysql/pv.nfs.yaml
+
+3、创建MySQL服务
+kubectl apply -f /root/scripts/mysql/mysql5.7.service.yaml
+
+4、创建version服务
+kubectl apply -f /root/scripts/mysql/version.svc.yaml
+
+5、创建app服务
+kubectl apply -f /root/scripts/mysql/app.svc.yaml
+
+

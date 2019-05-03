@@ -1,0 +1,47 @@
+0、hosts文件做gitlab库IP映射
+
+vim /etc/hosts文件添加
+  172.20.20.165 harbor.nantong.com
+
+cat /etc/docker/daemon.json
+{
+  "insecure-registries":["harbor.nantong.com:9001","https://rf2etq8b.mirror.aliyuncs.com"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2",
+  "storage-opts": [
+    "overlay2.override_kernel_check=true"
+  ]
+}
+systemctl restart docker
+
+/usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+	 --cgroup-driver=systemd
+
+systemctl daemon-reload
+systemctl restart kubelet
+  
+1、创建NFS共享
+
+vim /etc/exports
+  /work/efk_nfs_data 172.20.20.0/24(rw,no_root_squash,no_all_squash,sync)
+mkdir -p /work/efk_nfs_data
+chmod -R 755 /work/efk_nfs_data  共享文件夹
+exportfs -r
+#systemctl start rpcbind
+systemctl restart nfs
+showmount -e 172.20.20.74  查看
+
+2 为ES集群存储搭建动态PV
+  kubectl apply -f dynamic_pv.yaml
+3、安装elastic服务
+  kubectl apply -f elastic.svc.yaml
+4、安装Kibana
+  kubectl apply -f kibana.yaml
+5、安装fluentd
+  kubectl apply -f fluentd.yaml
+
+
+

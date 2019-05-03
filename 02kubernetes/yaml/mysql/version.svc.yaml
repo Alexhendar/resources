@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: versvc
+spec:
+  type: NodePort
+  ports:
+  - port: 5001
+  selector:
+    app: versvc
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: versvc
+spec:
+  selector:
+    matchLabels:
+      app: versvc
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: versvc
+    spec:
+      containers:
+      - image: harbor.nantong.com:9001/dev/version
+        name: versvc
+        env:
+        - name: version
+          value: '1'
+        ports:
+        - containerPort: 5000
+          name: version

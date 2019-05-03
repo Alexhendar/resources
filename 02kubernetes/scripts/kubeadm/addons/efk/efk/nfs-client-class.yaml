@@ -1,0 +1,6 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-storage
+  #namespace: kube-logging
+provisioner: lihui.pri/nfs # or choose another name, must match deployment's env PROVISIONER_NAME'
