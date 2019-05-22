@@ -2,6 +2,310 @@
 
 
 
+## 1.1 Elastic 词汇表
+
+参考：<https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html>
+
+[Elastic Stack](https://www.elastic.co/products) 中的产品设计为一起使用，因此[堆栈](https://www.elastic.co/products)中有通用术语。在特定产品或域中术语具有不同内涵的特殊情况下，这些差异在定义中注明。
+
+**术语介绍**
+
+- @metadata
+
+  用于存储您不希望包含在输出[事件中的](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event)内容的特殊字段 。例如，该`@metadata`字段对于创建用于[条件](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-conditional) 语句的瞬态字段很有用。
+
+- administration console
+
+  Elastic Cloud Enterprise的一个组件，为[Cloud UI](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-cloud-ui)提供API服务器 。还可以将ZooKeeper中的集群和分配器数据同步到Elasticsearch。
+
+- allocator
+
+  管理包含Elasticsearch和Kibana节点的主机。通过创建新[容器](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-container)并在请求时管理这些容器中的节点来控制这些节点的生命周期。用于扩展Elastic Cloud Enterprise安装的容量。
+
+- analysis
+
+  分析是将[全文](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-text)转换为 terms的过程。根据使用的analyzer ，这些短语： `FOO BAR`，`Foo-Bar`，`foo,bar`将可能导致所有的条款`foo`和`bar`。这些术语是实际存储在索引中的内容。
+
+  全文查询（非[术语](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-term)查询）`FoO:bAR`也将被分析为术语`foo`，`bar`因此将匹配存储在索引中的术语。
+
+  正是这种分析过程（在索引时和搜索时）都允许Elasticsearch执行全文查询。
+
+  另见[文字](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-text)和[术语](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-term)。
+
+- availability zone
+
+  包含与其他可用区隔离的Elastic Cloud Enterprise安装可用的资源，以防止出现故障。可以是机架，服务器区域或其他一些创建故障边界的逻辑约束。在高可用性群集中，群集的节点分布在两个或三个可用区域中，以确保群集可以在整个可用区域发生故障时继续运行。另请参阅 [Fault Tolerance（高可用性）](https://www.elastic.co/guide/en/cloud-enterprise/current/ece-ha.html)。
+
+- beats runner
+
+  用于将Filebeat和Metricbeat信息发送到日志记录集群。
+
+- bucket
+
+  机器学习功能使用桶的概念将时间序列分成批处理。该*桶跨度*是用于作业的部分配置信息。它定义了用于汇总和建模数据的时间间隔。这通常在5分钟到1小时之间，具体取决于您的数据特征。设置存储区跨度时，请考虑要分析的粒度，输入数据的频率，异常的典型持续时间以及需要警报的频率。
+
+- client forwarder
+
+  用于Elastic Cloud Enterprise和ZooKeeper的各个组件之间的安全内部通信。
+
+- Cloud UI
+
+  提供基于Web的访问权限，以管理[管理控制台](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-admin-console)支持的Elastic Cloud Enterprise安装 。
+
+- cluster
+
+  群集由一个或多个共享相同群集名称的[节点](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-node)组成。每个群集都有一个主节点，由群集自动选择，如果当前主节点出现故障，可以替换该节点。
+
+- codec plugin
+
+  Logstash [插件](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin)，用于更改[事件](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event)的数据表示形式。编解码器本质上是流过滤器，可以作为输入或输出的一部分。使用编解码器可以将消息传输与序列化过程分开。流行的编解码器包括json，msgpack和plain（text）。
+
+- conditional
+
+  基于语句（也称为条件）是真还是假来执行某些操作的控制流。Logstash支持`if`， `else if`和`else`语句。您可以使用条件语句来应用过滤器，并根据您指定的条件将事件发送到特定输出。
+
+- constructor
+
+  指示[分配器](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-allocator)管理Elasticsearch和Kibana节点的容器，并最大化分配器的利用率。监视器计划来自Cloud UI的更改请求，并确定如何转换现有群集。在高可用性安装中，将群集节点放置在不同的可用区域中，以确保群集可以在整个可用区域发生故障时继续运行。
+
+- container
+
+  包括Elastic Cloud Enterprise软件及其依赖项的实例。用于提供类似的环境，为节点分配有保证的主机资源份额，并简化Elastic Cloud Enterprise中的操作工作。
+
+- coordinator
+
+  由一些Elastic Cloud Enterprise服务的逻辑分组组成，并充当分布式协调系统和资源调度程序。
+
+- cross-cluster replication (CCR)
+
+  通过跨群集复制功能，您可以将远程群集中的索引复制到本地群集。有关更多信息，请参阅[跨群集复制](https://www.elastic.co/guide/en/elastic-stack-overview/master/xpack-ccr.html)。
+
+- cross-cluster search (CCS)
+
+  跨群集搜索功能使任何节点都可以充当多个群集的联合客户端。请参阅[跨群集搜索](https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-cross-cluster-search.html)。
+
+- datafeed
+
+  机器学习作业可以分析一次性数据或实时连续分析。Datafeeds从Elasticsearch检索数据以进行分析。或者，您可以将任何来源的数据直接发布到机器学习API。
+
+- detector
+
+  作为与机器学习作业相关联的配置信息的一部分，检测器定义了需要完成的分析类型。它们还指定要分析的字段。您可以在作业中使用多个检测器，这比针对相同数据运行多个作业更有效。
+
+- director
+
+  管理[ZooKeeper](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-zookeeper)数据存储区。此角色通常与[协调员](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-coordinator)共享，但在生产部署中，它可以分开。
+
+- document
+
+  文档是存储在Elasticsearch中的JSON文档。它就像是关系数据库中表中的一行。每个文档都存储在[索引中，](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-index)并具有[类型](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-type)和 [ID](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-id)。
+
+  文档是JSON对象（在其他语言中也称为散列/散列映射/关联数组），其包含零个或多个 [字段](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-field)或键值对。
+
+  索引的原始JSON文档将存储在 [`_source`字段中](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-source_field)，该[字段](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-source_field)在获取或搜索文档时默认返回。
+
+- Elastic Common Schema (ECS)
+
+  针对日志记录和度量标准等用例的Elasticsearch文档架构。ECS定义了一组通用字段及其数据类型，并提供了有关其正确用法的指导。ECS用于改善来自不同来源的事件数据的一致性。
+
+- event
+
+  单个信息单元，包含时间戳和附加数据。事件通过输入到达，随后被解析，加时间戳并通过Logstash [管道](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-pipeline)传递。
+
+- field
+
+  一个[文件](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-document)包含字段或键-值对的列表。值可以是简单（标量）值（例如，字符串，整数，日期），也可以是类似数组或对象的嵌套结构。字段类似于关系数据库中表中的列。
+
+  所述[映射](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-mapping)用于每个字段具有一个字段*类型*（不要与文件相混淆[类型](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-type)），其指示可以被存储在该字段中的数据的类型，例如`integer`，`string`， `object`。映射还允许您定义（除其他事项外）应如何分析字段的值。
+
+  在Logstash中，该术语指的是[事件](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event)属性。例如，apache访问日志中的每个事件都有属性，例如状态代码（200,404），请求路径（“/”，“index.html”），HTTP动词（GET，POST），客户端IP地址，等等。Logstash使用术语“字段”来引用这些属性。
+
+- field reference
+
+  A reference to an event [field](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-field). This reference may appear in an output block or filter block in the Logstash config file. Field references are typically wrapped in square (`[]`) brackets, for example `[fieldname]`. If you are referring to a top-level field, you can omit the `[]` and simply use the field name. To refer to a nested field, you specify the full path to that field: `[top-level field][nested field]`.
+
+- filter
+
+  A filter is a non-scoring [query](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-query), meaning that it does not score documents. It is only concerned about answering the question - "Does this document match?". The answer is always a simple, binary yes or no. This kind of query is said to be made in a [filter context](https://www.elastic.co/guide/en/elasticsearch/reference/master/query-filter-context.html), hence it is called a filter. Filters are simple checks for set inclusion or exclusion. In most cases, the goal of filtering is to reduce the number of documents that have to be examined.
+
+- filter plugin
+
+  A Logstash [plugin](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin) that performs intermediary processing on an [event](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event). Typically, filters act upon event data after it has been ingested via inputs, by mutating, enriching, and/or modifying the data according to configuration rules. Filters are often applied conditionally depending on the characteristics of the event. Popular filter plugins include grok, mutate, drop, clone, and geoip. Filter stages are optional.
+
+- follower index
+
+  Follower indices are the target indices for [cross-cluster replication](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-ccr). They exist in your local cluster and replicate [leader indices](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-leader-index).
+
+- gem
+
+  A self-contained package of code that’s hosted on [RubyGems.org](https://rubygems.org/). Logstash [plugins](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin) are packaged as Ruby Gems. You can use the Logstash [plugin manager](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin-manager) to manage Logstash gems.
+
+- hot thread
+
+  A Java thread that has high CPU usage and executes for a longer than normal period of time.
+
+- id
+
+  The ID of a [document](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-document) identifies a document. The `index/id` of a document must be unique. If no ID is provided, then it will be auto-generated. (Also see [routing](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-routing)).
+
+- index
+
+  An index is like a *table* in a relational database. It has a [mapping](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-mapping) which contains a [type](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-type), which contains the [fields](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-field) in the index.An index is a logical namespace which maps to one or more [primary shards](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-primary-shard) and can have zero or more [replica shards](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-replica-shard).
+
+- indexer
+
+  A Logstash instance that is tasked with interfacing with an Elasticsearch cluster in order to index [event](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event)data.
+
+- input plugin
+
+  A Logstash [plugin](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin) that reads [event](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event) data from a specific source. Input plugins are the first stage in the Logstash event processing [pipeline](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-pipeline). Popular input plugins include file, syslog, redis, and beats.
+
+- job
+
+  Machine learning jobs contain the configuration information and metadata necessary to perform an analytics task.
+
+- leader index
+
+  Leader indices are the source indices for [cross-cluster replication](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-ccr). They exist on remote clusters and are replicated to [follower indices](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-follower-index).
+
+
+
+- machine learning node
+
+  A machine learning node is a node that has `xpack.ml.enabled` and `node.ml` set to `true`, which is the default behavior. If you set `node.ml` to `false`, the node can service API requests but it cannot run jobs. If you want to use machine learning features, there must be at least one machine learning node in your cluster.
+
+- mapping
+
+  A mapping is like a *schema definition* in a relational database. Each [index](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-index) has a mapping, which defines a [type](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-type), plus a number of index-wide settings.A mapping can either be defined explicitly, or it will be generated automatically when a document is indexed.
+
+- master node
+
+  Handles write requests for the cluster and publishes changes to other nodes in an ordered fashion. Each cluster has a single master node which is chosen automatically by the cluster and is replaced if the current master node fails. Also see [node](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-node).
+
+- merge
+
+  The combining of Lucene segments, either automatically in the background or initiated using force merge.
+
+- message broker
+
+  Also referred to as a *message buffer* or *message queue*, a message broker is external software (such as Redis, Kafka, or RabbitMQ) that stores messages from the Logstash shipper instance as an intermediate store, waiting to be processed by the Logstash indexer instance.
+
+- node
+
+  A node is a running instance of Elasticsearch or Kibana which belongs to a [cluster](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-cluster). Multiple nodes can be started on a single server for testing purposes, but usually you should have one node per server.At startup, a node will use unicast to discover an existing cluster with the same cluster name and will try to join that cluster.
+
+- output plugin
+
+  A Logstash [plugin](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin) that writes [event](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event) data to a specific destination. Outputs are the final stage in the event [pipeline](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-pipeline). Popular output plugins include elasticsearch, file, graphite, and statsd.
+
+- pipeline
+
+  A term used to describe the flow of [events](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event) through the Logstash workflow. A pipeline typically consists of a series of input, filter, and output stages. [Input](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-input-plugin) stages get data from a source and generate events, [filter](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-filter-plugin) stages, which are optional, modify the event data, and [output](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-output-plugin) stages write the data to a destination. Inputs and outputs support [codecs](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-codec-plugin) that enable you to encode or decode the data as it enters or exits the pipeline without having to use a separate filter.
+
+- plan
+
+  Specifies the configuration and topology of an Elasticsearch or Kibana cluster, such as capacity, availability, and Elasticsearch version, for example. When changing a plan, the [constructor](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-constructor) determines how to transform the existing cluster into the pending plan.
+
+- plugin
+
+  A self-contained software package that implements one of the stages in the Logstash event processing [pipeline](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-pipeline). The list of available plugins includes [input plugins](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-input-plugin), [output plugins](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-output-plugin), [codec plugins](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-codec-plugin), and [filter plugins](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-filter-plugin). The plugins are implemented as Ruby [gems](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-gem) and hosted on [RubyGems.org](https://rubygems.org/). You define the stages of an event processing [pipeline](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-pipeline) by configuring plugins.
+
+- plugin manager
+
+  Accessed via the `bin/logstash-plugin` script, the plugin manager enables you to manage the lifecycle of [plugins](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-plugin) in your Logstash deployment. You can install, remove, and upgrade plugins by using the plugin manager Command Line Interface (CLI).
+
+- primary shard
+
+  Each document is stored in a single primary [shard](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-shard). When you index a document, it is indexed first on the primary shard, then on all [replicas](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-replica-shard) of the primary shard.By default, an [index](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-index) has 5 primary shards. You can specify fewer or more primary shards to scale the number of [documents](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-document) that your index can handle.You cannot change the number of primary shards in an index, once the index is created.See also [routing](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-routing).
+
+- proxy
+
+  A highly available, TLS-enabled proxy layer that routes user requests, mapping cluster IDs that are passed in request URLs for the container to the cluster nodes handling the user requests.
+
+- query
+
+  A request for information from Elasticsearch. You can think of a query as a question, written in a way Elasticsearch understands. A search consists of one or more queries combined.There are two types of queries: *scoring queries* and *filters*. For more information about query types, see [Query and filter context](https://www.elastic.co/guide/en/elasticsearch/reference/master/query-filter-context.html).
+
+- recovery
+
+  The process of syncing a shard copy from a source shard. Upon completion, the recovery process makes the shard copy available for queries.Recovery automatically occurs anytime a shard moves to a different node in the same cluster, including:Node startupNode failureIndex shard replicationSnapshot restoration
+
+- reindex
+
+  To cycle through some or all documents in one or more indices, re-writing them into the same or new index in a local or remote cluster. This is most commonly done to update mappings, or to upgrade Elasticsearch between two incompatible index versions.
+
+- replica shard
+
+  Each [primary shard](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-primary-shard) can have zero or more replicas. A replica is a copy of the primary shard, and has two purposes:increase failover: a replica shard can be promoted to a primary shard if the primary failsincrease performance: get and search requests can be handled by primary or replica shards.By default, each primary shard has one replica, but the number of replicas can be changed dynamically on an existing index. A replica shard will never be started on the same node as its primary shard.
+
+- roles token
+
+  Enables a host to join an existing Elastic Cloud Enterprise installation and grants permission to hosts to hold certain roles, such as the [allocator](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-allocator) role. Used when installing Elastic Cloud Enterprise on additional hosts, a roles token helps secure Elastic Cloud Enterprise by making sure that only authorized hosts become part of the installation.
+
+- routing
+
+  When you index a document, it is stored on a single [primary shard](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-primary-shard). That shard is chosen by hashing the `routing` value. By default, the `routing` value is derived from the ID of the document or, if the document has a specified parent document, from the ID of the parent document (to ensure that child and parent documents are stored on the same shard).This value can be overridden by specifying a `routing` value at index time, or a [routing field](https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping-routing-field.html) in the[mapping](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-mapping).
+
+- runner
+
+  A local control agent that runs on all hosts, used to deploy local containers based on role definitions. Ensures that containers assigned to it exist and are able to run, and creates or recreates the containers if necessary.
+
+- services forwarder
+
+  Routes data internally in an Elastic Cloud Enterprise installation.
+
+- shard
+
+  分片是单个Lucene实例。它是一个低级别的“工作人员”单元，由Elasticsearch自动管理。索引是指向[主](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-primary-shard)分片和 [副本分](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-replica-shard)片的逻辑命名空间。
+
+  除了定义索引应具有的主分片和副本分片的数量之外，您永远不需要直接引用分片。相反，您的代码应该只处理索引。
+
+  Elasticsearch 在 [集群](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-cluster)中的所有[节点](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-node)之间分配分片，并且在节点故障或添加新节点的情况下，可以自动将分片从一个节点移动到另一个节点。
+
+- shipper
+
+  Logstash的一个实例，它将事件发送到另一个Logstash实例或其他应用程序。
+
+- shrink
+
+  To reduce the amount of shards in an index. See the [shrink index API](https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-shrink-index.html).
+
+- source field
+
+  By default, the JSON document that you index will be stored in the `_source` field and will be returned by all get and search requests. This allows you access to the original object directly from search results, rather than requiring a second step to retrieve the object from an ID.
+
+- split
+
+  To grow the amount of shards in an index. See the [split index API](https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-split-index.html).
+
+- stunnel
+
+  Securely tunnels all traffic in an Elastic Cloud Enterprise installation.
+
+- term
+
+  A term is an exact value that is indexed in Elasticsearch. The terms `foo`, `Foo`, `FOO` are NOT equivalent. Terms (i.e. exact values) can be searched for using *term* queries. See also [text](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-text) and [analysis](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-analysis).
+
+- text
+
+  Text (or full text) is ordinary unstructured text, such as this paragraph. By default, text will be [analyzed](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-analysis) into [terms](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-term), which is what is actually stored in the index.Text [fields](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-field) need to be analyzed at index time in order to be searchable as full text, and keywords in full text queries must be analyzed at search time to produce (and search for) the same terms that were generated at index time.See also [term](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-term) and [analysis](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-analysis).
+
+- type
+
+  用于表示文档*类型的类型*，例如a `email`，a `user`或a `tweet`。类型已弃用，正在被删除。请参阅 [删除映射类型](https://www.elastic.co/guide/en/elasticsearch/reference/master/removal-of-types.html)。
+
+- worker
+
+  Logstash使用的过滤器线程模型，其中每个工作程序在将事件发送到输出队列之前按顺序接收 [事件](https://www.elastic.co/guide/en/elastic-stack-glossary/current/terms.html#glossary-event)并应用所有过滤器。这允许跨CPU的可扩展性，因为许多过滤器是CPU密集型的。
+
+- ZooKeeper
+
+  Elastic Cloud Enterprise用于存储安装状态的分布式系统的协调服务。负责发现主机，资源分配，失败后的领导者选举和高优先级通知。
+
+
+
+
+
 # 2、环境准备
 
 ## 2.1  JDK安装
